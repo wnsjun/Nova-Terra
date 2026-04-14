@@ -146,6 +146,8 @@ public class ReconciliationService {
 
         log.info("FAILED 배당 재시도 시작 - 대상: {}건", failedIncomes.size());
 
+        int processed = 0;
+        int failed = 0;
         for (RentalIncome income : failedIncomes) {
             if (!income.isRetryable()) {
                 log.warn("최대 재시도 횟수 초과 - rentalIncomeId: {}, retryCount: {}",
@@ -169,11 +171,14 @@ public class ReconciliationService {
                 // Phase 3: 성공 반영 (트랜잭션)
                 transactionService.completeRetry(income, txHash);
                 log.info("배당 재시도 성공 - rentalIncomeId: {}, txHash: {}", income.getId(), txHash);
+                processed++;
 
             } catch (Exception e) {
                 log.error("배당 재시도 실패 - rentalIncomeId: {}", income.getId(), e);
                 transactionService.failRetry(income);
+                failed++;
             }
         }
+        return new SchedulerRunLogger.Result(processed, failed);
     }
 }
