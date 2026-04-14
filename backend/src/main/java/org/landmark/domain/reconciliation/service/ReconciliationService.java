@@ -11,6 +11,7 @@ import org.landmark.domain.reconciliation.domain.ReconciliationType;
 import org.landmark.domain.rental.domain.RentalIncome;
 import org.landmark.domain.rental.domain.RentalIncomeStatus;
 import org.landmark.domain.rental.repository.RentalIncomeRepository;
+import org.landmark.global.scheduler.runlog.SchedulerRunLogger;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -29,6 +30,7 @@ public class ReconciliationService {
     private final RentalIncomeRepository rentalIncomeRepository;
     private final BlockchainWalletService blockchainWalletService;
     private final ReconciliationTransactionService transactionService;
+    private final SchedulerRunLogger runLogger;
 
     /**
      * 온·오프체인 보유량 대사 (매일 새벽 2시)
@@ -38,6 +40,10 @@ public class ReconciliationService {
      */
     @Scheduled(cron = "0 0 2 * * *")
     public void reconcileHoldings() {
+        runLogger.run("ReconcileHoldings", this::doReconcileHoldings);
+    }
+
+    private SchedulerRunLogger.Result doReconcileHoldings() {
         log.info("===== 온·오프체인 보유량 대사 시작 =====");
 
         List<Property> activeProperties = propertyRepository.findByStatus(PropertyStatus.ACTIVE);
@@ -70,6 +76,7 @@ public class ReconciliationService {
 
         log.info("===== 온·오프체인 보유량 대사 완료 - 검사: {}건, 불일치: {}건 =====",
                 activeProperties.size(), mismatchCount);
+        return new SchedulerRunLogger.Result(activeProperties.size(), mismatchCount);
     }
 
     /**
@@ -80,6 +87,10 @@ public class ReconciliationService {
      */
     @Scheduled(cron = "0 30 2 * * *")
     public void verifyDistributionTransactions() {
+        runLogger.run("VerifyDistributionTransactions", this::doVerifyDistributionTransactions);
+    }
+
+    private SchedulerRunLogger.Result doVerifyDistributionTransactions() {
         log.info("===== 배당 TX 검증 시작 =====");
 
         List<RentalIncome> recentDistributed = rentalIncomeRepository
@@ -115,6 +126,7 @@ public class ReconciliationService {
 
         log.info("===== 배당 TX 검증 완료 - 검사: {}건, 실패: {}건 =====",
                 recentDistributed.size(), failCount);
+        return new SchedulerRunLogger.Result(recentDistributed.size(), failCount);
     }
 
     /**
@@ -124,9 +136,13 @@ public class ReconciliationService {
      */
     @Scheduled(fixedDelay = 300000)
     public void retryFailedDistributions() {
+        runLogger.run("RetryFailedDistributions", this::doRetryFailedDistributions);
+    }
+
+    private SchedulerRunLogger.Result doRetryFailedDistributions() {
         List<RentalIncome> failedIncomes = rentalIncomeRepository.findByStatus(RentalIncomeStatus.FAILED);
 
-        if (failedIncomes.isEmpty()) return;
+        if (failedIncomes.isEmpty()) return new SchedulerRunLogger.Result(0, 0);
 
         log.info("FAILED 배당 재시도 시작 - 대상: {}건", failedIncomes.size());
 

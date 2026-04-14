@@ -28,6 +28,10 @@ public enum ErrorCode {
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다."),
   PROPERTY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 부동산 상품입니다."),
   PROPOSAL_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 제안입니다."),
+  PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 결제 건입니다."),
+
+  // 422 — Payment / Wallet
+  WALLET_NOT_LINKED(HttpStatus.UNPROCESSABLE_ENTITY, "지갑이 연결되지 않았습니다. 먼저 지갑을 연결해주세요."),
 
   // 422 Unprocessable Entity
   ALREADY_MINTED(HttpStatus.UNPROCESSABLE_ENTITY, "이미 토큰이 발행된 부동산입니다."),
