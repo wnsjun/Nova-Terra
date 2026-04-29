@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Topbar from '../layouts/Topbar'
+import bank1 from '../assets/bank1.png'
+import bank2 from '../assets/bank2.png'
+import bank3 from '../assets/bank3.png'
+import bank4 from '../assets/bank4.png'
 
 type Step = 'plaid' | 'done'
 type PlaidScreen = 'select' | 'login' | 'connecting' | 'success'
 
 const BANKS = [
-  { name: '국민은행', color: '#FFBC00', textColor: '#000' },
-  { name: '우리은행', color: '#007BC7', textColor: '#fff' },
-  { name: '하나은행', color: '#009B77', textColor: '#fff' },
-  { name: '토스뱅크', color: '#0064FF', textColor: '#fff' },
+  { name: '국민은행', logo: bank1 },
+  { name: '우리은행', logo: bank2 },
+  { name: '하나은행', logo: bank3 },
+  { name: '토스뱅크', logo: bank4 },
 ]
 
 export default function Accredited() {
@@ -32,6 +36,7 @@ export default function Accredited() {
     setPlaidScreen('success')
     await new Promise(r => setTimeout(r, 1000))
     setModalOpen(false)
+    localStorage.setItem('novaterra_accredited_verified', 'true')
     setStep('done')
   }
 
@@ -191,9 +196,7 @@ export default function Accredited() {
                       onClick={() => handleBankSelect(bank.name)}
                       className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-[#1B4F8A] hover:bg-blue-50 transition-all text-left"
                     >
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0" style={{ backgroundColor: bank.color, color: bank.textColor }}>
-                        {bank.name[0]}
-                      </div>
+                      <img src={bank.logo} alt={bank.name} className="w-9 h-9 rounded-lg object-contain shrink-0" />
                       <span className="text-sm font-medium text-gray-800">{bank.name}</span>
                       <svg className="ml-auto w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

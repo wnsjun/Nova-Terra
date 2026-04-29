@@ -51,6 +51,7 @@ export default function Kyc() {
       }
 
       // 3. 인증 통과 → 완료
+      localStorage.setItem('novaterra_kyc_verified', 'true')
       setStep('done')
     } catch (err: any) {
       setError(err.message ?? 'Stripe 인증에 실패했습니다.')

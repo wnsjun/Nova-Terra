@@ -9,23 +9,23 @@ interface OnChainIDModalProps {
 
 export default function OnChainIDModal({ isOpen, onClose}: OnChainIDModalProps) {
   const [address, setAddress] = useState('')
-  const active = 1  // 1이면 active 상태
+  const [isKyc, setIsKyc] = useState(false)
+  const [isAccredited, setIsAccredited] = useState(false)
   const navigate = useNavigate()
 
-  // 지갑 주소 가져오기
   useEffect(() => {
-    const fetchAddress = async () => {
+    if (!isOpen) return
+    const fetchAll = async () => {
       try {
         const walletAddress = await getWalletAddress()
         setAddress(walletAddress)
       } catch (error) {
         console.error('지갑 주소 가져오기 실패:', error)
       }
+      setIsKyc(localStorage.getItem('novaterra_kyc_verified') === 'true')
+      setIsAccredited(localStorage.getItem('novaterra_accredited_verified') === 'true')
     }
-
-    if (isOpen) {
-      fetchAddress()
-    }
+    fetchAll()
   }, [isOpen])
 
   // 주소 축약 함수 (0x1234...Ef 형식)
@@ -101,14 +101,14 @@ export default function OnChainIDModal({ isOpen, onClose}: OnChainIDModalProps) 
             {/* KYC 카드 */}
             <div
               onClick={() => { onClose(); navigate('/kyc') }}
-              className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${active === 1 ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}
+              className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${isKyc ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}
             >
               <div className="w-full flex justify-end mb-1">
-                <span className="px-1.5 py-0.5 rounded bg-black/5 text-black text-[8px] font-bold uppercase tracking-wider border border-black/10">Verified</span>
+                <span className="px-1.5 py-0.5 rounded bg-black/5 text-black text-[8px] font-bold uppercase tracking-wider border border-black/10">{isKyc ? 'Verified' : 'Required'}</span>
               </div>
-              <div className={`w-10 h-10 mb-2 rounded-full flex items-center justify-center ${active === 1 ? 'bg-black border-none' : 'bg-gray-50 border border-black/20'}`}>
-                <svg className={`w-5 h-5 ${active === 1 ? 'text-white' : 'text-black'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <div className={`w-10 h-10 mb-2 rounded-full flex items-center justify-center ${isKyc ? 'bg-black border-none' : 'bg-gray-50 border border-black/20'}`}>
+                <svg className={`w-5 h-5 ${isKyc ? 'text-white' : 'text-black'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isKyc ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
                 </svg>
               </div>
               <h3 className="text-xs font-bold text-black mb-1">KYC</h3>
@@ -118,14 +118,14 @@ export default function OnChainIDModal({ isOpen, onClose}: OnChainIDModalProps) 
             {/* Accredited 카드 */}
             <div
               onClick={() => { onClose(); navigate('/accredited') }}
-              className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${active === 1 ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}
+              className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${isAccredited ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}
             >
               <div className="w-full flex justify-end mb-1">
-                <span className="px-1.5 py-0.5 rounded bg-black/5 text-black text-[8px] font-bold uppercase tracking-wider border border-black/10">{active === 1 ? 'Verified' : 'Required'}</span>
+                <span className="px-1.5 py-0.5 rounded bg-black/5 text-black text-[8px] font-bold uppercase tracking-wider border border-black/10">{isAccredited ? 'Verified' : 'Required'}</span>
               </div>
-              <div className={`w-10 h-10 mb-2 rounded-full flex items-center justify-center ${active === 1 ? 'bg-black border-none' : 'bg-gray-50 border border-black/20'}`}>
-                <svg className={`w-5 h-5 ${active === 1 ? 'text-white' : 'text-black'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={active === 1 ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
+              <div className={`w-10 h-10 mb-2 rounded-full flex items-center justify-center ${isAccredited ? 'bg-black border-none' : 'bg-gray-50 border border-black/20'}`}>
+                <svg className={`w-5 h-5 ${isAccredited ? 'text-white' : 'text-black'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isAccredited ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"} />
                 </svg>
               </div>
               <h3 className="text-xs font-bold text-black mb-1">Accredited</h3>
@@ -133,13 +133,13 @@ export default function OnChainIDModal({ isOpen, onClose}: OnChainIDModalProps) 
             </div>
 
             {/* Country 카드 */}
-            <div className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm ${active === 1 ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}>
+            <div className="flex flex-col items-center p-3 rounded-xl bg-white shadow-sm border-2 border-[#1ABCF7]">
               <div className="w-full flex justify-end mb-1">
-                <span className="px-1.5 py-0.5 rounded bg-black/5 text-black text-[8px] font-bold uppercase tracking-wider border border-black/10">{active === 1 ? 'Verified' : 'Required'}</span>
+                <span className="px-1.5 py-0.5 rounded bg-black/5 text-black text-[8px] font-bold uppercase tracking-wider border border-black/10">Verified</span>
               </div>
-              <div className={`w-10 h-10 mb-2 rounded-full flex items-center justify-center ${active === 1 ? 'bg-black border-none' : 'bg-gray-50 border border-black/20'}`}>
-                <svg className={`w-5 h-5 ${active === 1 ? 'text-white' : 'text-black'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={active === 1 ? "M5 13l4 4L19 7" : "M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"} />
+              <div className="w-10 h-10 mb-2 rounded-full flex items-center justify-center bg-black border-none">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <h3 className="text-xs font-bold text-black mb-1">Country</h3>
