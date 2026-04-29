@@ -1,6 +1,13 @@
-import { Contract } from 'ethers'
+import { Contract, BrowserProvider, toUtf8Bytes } from 'ethers'
 import { ONCHAINID_ABI } from '../../ABIs'
 import { getProvider } from '../provider'
+
+// KYC Claim topic 상수
+export const CLAIM_TOPICS = {
+  KYC: 1,
+  ACCREDITED: 2,
+  COUNTRY: 3,
+} as const
 
 // 컨트랙트 인스턴스 생성
 export const getOnchainIdContract = async (
@@ -88,6 +95,29 @@ export const isValidClaim = async (
     return await contract.isValidClaim(topic)
   } catch (error) {
     console.error('Claim 유효성 확인 실패:', error)
+    throw error
+  }
+}
+
+// Claim 추가 (MetaMask 서명 필요)
+export const addClaim = async (
+  contractAddress: string,
+  topic: number,
+  data: string
+): Promise<string> => {
+  try {
+    const provider = new BrowserProvider(window.ethereum)
+    const signer = await provider.getSigner()
+    const contract = new Contract(contractAddress, ONCHAINID_ABI, signer)
+
+    const now = Math.floor(Date.now() / 1000)
+    const validTo = now + 365 * 24 * 60 * 60 // 1년
+
+    const tx = await contract.addClaim(topic, toUtf8Bytes(data), now, validTo)
+    await tx.wait()
+    return tx.hash as string
+  } catch (error) {
+    console.error('Claim 추가 실패:', error)
     throw error
   }
 }

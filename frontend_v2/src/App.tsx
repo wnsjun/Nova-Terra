@@ -8,6 +8,7 @@ import Portfolio from './pages/Portfolio'
 import Governance from './pages/Governance'
 import Trade from './pages/Trade'
 import OAuthCallback from './pages/OAuthCallback'
+import Kyc from './pages/Kyc'
 
 //나중에 지워
 import BlockchainTest from './pages/BlockchainTest'
@@ -25,6 +26,7 @@ function App() {
           <Route path="/governance" element={<Governance />} />
           <Route path="/test" element={<BlockchainTest />} />
           <Route path="/trade" element={<Trade />} />
+          <Route path="/kyc" element={<Kyc />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
