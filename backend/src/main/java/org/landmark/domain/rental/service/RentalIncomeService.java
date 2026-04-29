@@ -41,8 +41,8 @@ public class RentalIncomeService {
 
     /* Property별 임대 수익 전용 가상계좌 발급 */
     @Transactional
-    public PropertyVirtualAccountResponse issueVirtualAccountForProperty(String propertyId) {
-        log.info("Property별 임대 수익 가상계좌 발급 시작 - propertyId: {}", propertyId);
+    public PropertyVirtualAccountResponse issueVirtualAccountForProperty(String propertyId, Long amount) {
+        log.info("Property별 임대 수익 가상계좌 발급 시작 - propertyId: {}, amount: {}", propertyId, amount);
 
         var property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROPERTY_NOT_FOUND));
@@ -56,7 +56,7 @@ public class RentalIncomeService {
 
         String orderId = generateRentalOrderId(propertyId);
         TossVirtualAccountRequest tossRequest = new TossVirtualAccountRequest(
-                PaymentConstants.RENTAL_VIRTUAL_ACCOUNT_TEMP_AMOUNT,
+                amount,
                 orderId,
                 property.getName() + " 임대 수익",
                 PaymentConstants.DEFAULT_TENANT_NAME,

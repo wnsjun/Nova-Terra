@@ -21,11 +21,14 @@ public class RentalIncomeController {
 
     private final RentalIncomeService rentalIncomeService;
 
-    @Operation(summary = "임대 수익 가상계좌 발급", description = "Property별 임대 수익 전용 고정 가상계좌를 발급합니다.")
+    @Operation(summary = "임대 수익 가상계좌 발급",
+            description = "Property별 임대 수익 가상계좌를 발급합니다. amount는 토스 단건 가상계좌의 입금 예정액(원). 시연용으로 부동산마다 다른 금액 발급 가능.")
     @PostMapping("/properties/{propertyId}/virtual-accounts")
-    public ApiResponse<PropertyVirtualAccountResponse> issueVirtualAccount(@PathVariable String propertyId) {
-        log.info("임대 수익 가상계좌 발급 요청 - propertyId: {}", propertyId);
-        PropertyVirtualAccountResponse response = rentalIncomeService.issueVirtualAccountForProperty(propertyId);
+    public ApiResponse<PropertyVirtualAccountResponse> issueVirtualAccount(
+            @PathVariable String propertyId,
+            @RequestParam Long amount) {
+        log.info("임대 수익 가상계좌 발급 요청 - propertyId: {}, amount: {}", propertyId, amount);
+        PropertyVirtualAccountResponse response = rentalIncomeService.issueVirtualAccountForProperty(propertyId, amount);
         return ApiResponse.ok(200, "가상계좌 발급 성공", response);
     }
 
