@@ -38,7 +38,7 @@ public class RentalIncome {
     @Column(name = "distribution_tx_hash")
     private String distributionTxHash;  // 블록체인 트랜잭션 해시
 
-    @Column(name = "toss_order_id", unique = true)
+    @Column(name = "toss_order_id")
     private String tossOrderId;
 
     @Column(name = "toss_payment_key", unique = true)
