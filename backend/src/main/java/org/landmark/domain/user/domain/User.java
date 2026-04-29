@@ -85,8 +85,11 @@ public class User {
         this.walletAddress = walletAddress;
     }
 
-    public void completeVerification() {
+    public void completeKyc() {
         this.kycVerified = true;
+    }
+
+    public void completeCreditCheck() {
         this.creditCheckCompleted = true;
     }
 }
