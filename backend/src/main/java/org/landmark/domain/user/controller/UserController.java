@@ -9,6 +9,7 @@ import org.landmark.domain.user.service.UserService;
 import org.landmark.global.dto.ApiResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,5 +31,14 @@ public class UserController {
         String userId = (String) authentication.getPrincipal();
         userService.linkWallet(userId, request.walletAddress());
         return ApiResponse.ok(200, "지갑 연동 성공");
+    }
+
+    @Operation(summary = "KYC + 신용 점수 인증 완료 처리",
+            description = "프론트에서 KYC와 Plaid 신용 점수 체크를 마친 뒤 호출. 두 인증 플래그를 모두 true로 설정합니다.")
+    @PostMapping("/me/verifications")
+    public ApiResponse<Void> completeVerification(Authentication authentication) {
+        String userId = (String) authentication.getPrincipal();
+        userService.completeVerification(userId);
+        return ApiResponse.ok(200, "인증 완료 처리 성공");
     }
 }

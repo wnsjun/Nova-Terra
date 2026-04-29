@@ -21,4 +21,12 @@ public class UserService {
 
         user.linkWallet(walletAddress);
     }
+
+    @Transactional
+    public void completeVerification(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        user.completeVerification();
+    }
 }

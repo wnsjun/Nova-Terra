@@ -8,7 +8,9 @@ public record UserInfoResponse(
         String email,
         String name,
         String profileImageUrl,
-        AuthProvider provider
+        AuthProvider provider,
+        boolean kycVerified,
+        boolean creditCheckCompleted
 ) {
     public static UserInfoResponse from(User user) {
         return new UserInfoResponse(
@@ -16,7 +18,9 @@ public record UserInfoResponse(
                 user.getEmail(),
                 user.getName(),
                 user.getProfileImageUrl(),
-                user.getProvider()
+                user.getProvider(),
+                user.isKycVerified(),
+                user.isCreditCheckCompleted()
         );
     }
 }

@@ -40,6 +40,12 @@ public class User {
     @Column(name = "provider_id")
     private String providerId;
 
+    @Column(name = "kyc_verified", nullable = false)
+    private boolean kycVerified;
+
+    @Column(name = "credit_check_completed", nullable = false)
+    private boolean creditCheckCompleted;
+
     @Column(name = "created_at", updatable = false)
     private Long createdAt;
 
@@ -77,5 +83,10 @@ public class User {
 
     public void linkWallet(String walletAddress) {
         this.walletAddress = walletAddress;
+    }
+
+    public void completeVerification() {
+        this.kycVerified = true;
+        this.creditCheckCompleted = true;
     }
 }
