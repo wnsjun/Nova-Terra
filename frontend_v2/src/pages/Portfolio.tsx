@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { BrowserProvider } from 'ethers'
 import Topbar from '../layouts/Topbar'
 import PortfolioAssetCard from '../components/portfolio/PortfolioAssetCard'
 import PortfolioDetailPanel from '../components/portfolio/PortfolioDetailPanel'
@@ -28,32 +27,11 @@ export default function Portfolio() {
   const [isClaimPanelOpen, setIsClaimPanelOpen] = useState(false)
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
-  const [walletAddress, setWalletAddress] = useState<string>('')
-
-  useEffect(() => {
-    const getWalletAddress = async () => {
-      try {
-        if (typeof window.ethereum !== 'undefined') {
-          const provider = new BrowserProvider(window.ethereum)
-          const accounts = await provider.listAccounts()
-          if (accounts.length > 0) {
-            setWalletAddress(accounts[0].address)
-          }
-        }
-      } catch (error) {
-        console.error('지갑 주소 가져오기 실패:', error)
-      }
-    }
-
-    getWalletAddress()
-  }, [])
 
   useEffect(() => {
     const fetchPortfolio = async () => {
-      if (!walletAddress) return
-
       try {
-        const holdings = await getPortfolio(walletAddress)
+        const holdings = await getPortfolio()
 
         // 각 holding에 대해 블록체인 데이터 가져오기
         const transformedAssets: Asset[] = await Promise.all(
@@ -96,7 +74,7 @@ export default function Portfolio() {
     }
 
     fetchPortfolio()
-  }, [walletAddress])
+  }, [])
 
   const totalAssetValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0)
   const averageYield = 6.8

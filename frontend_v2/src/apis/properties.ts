@@ -105,9 +105,9 @@ export interface PortfolioApiResponse {
   data: PortfolioResponse
 }
 
-export const getPortfolio = async (userId: string): Promise<HoldingResponse[]> => {
+export const getPortfolio = async (): Promise<HoldingResponse[]> => {
   try {
-    const response = await instance.get<PortfolioApiResponse>(`/api/v1/portfolio/${userId}`)
+    const response = await instance.get<PortfolioApiResponse>('/api/v1/portfolio/me')
     return response.data.data.holdings
   } catch (error) {
     console.error('포트폴리오 조회 실패:', error)

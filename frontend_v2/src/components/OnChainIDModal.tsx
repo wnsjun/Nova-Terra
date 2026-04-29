@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getWalletAddress } from '../apis/blockchain/provider'
 
 interface OnChainIDModalProps {
@@ -9,6 +10,7 @@ interface OnChainIDModalProps {
 export default function OnChainIDModal({ isOpen, onClose}: OnChainIDModalProps) {
   const [address, setAddress] = useState('')
   const active = 1  // 1이면 active 상태
+  const navigate = useNavigate()
 
   // 지갑 주소 가져오기
   useEffect(() => {
@@ -97,7 +99,10 @@ export default function OnChainIDModal({ isOpen, onClose}: OnChainIDModalProps) 
           {/* 검증 카드들 */}
           <div className="grid grid-cols-3 gap-2 mb-4">
             {/* KYC 카드 */}
-            <div className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm ${active === 1 ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}>
+            <div
+              onClick={() => { onClose(); navigate('/kyc') }}
+              className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${active === 1 ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}
+            >
               <div className="w-full flex justify-end mb-1">
                 <span className="px-1.5 py-0.5 rounded bg-black/5 text-black text-[8px] font-bold uppercase tracking-wider border border-black/10">Verified</span>
               </div>
@@ -111,7 +116,10 @@ export default function OnChainIDModal({ isOpen, onClose}: OnChainIDModalProps) 
             </div>
 
             {/* Accredited 카드 */}
-            <div className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm ${active === 1 ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}>
+            <div
+              onClick={() => { onClose(); navigate('/accredited') }}
+              className={`flex flex-col items-center p-3 rounded-xl bg-white shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${active === 1 ? 'border-2 border-[#1ABCF7]' : 'border border-black/10'}`}
+            >
               <div className="w-full flex justify-end mb-1">
                 <span className="px-1.5 py-0.5 rounded bg-black/5 text-black text-[8px] font-bold uppercase tracking-wider border border-black/10">{active === 1 ? 'Verified' : 'Required'}</span>
               </div>

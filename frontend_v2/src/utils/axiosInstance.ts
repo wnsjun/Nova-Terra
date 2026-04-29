@@ -14,12 +14,18 @@ const refreshInstance = axios.create({
 });
 
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(p => (error ? p.reject(error) : p.resolve(token!)));
   failedQueue = [];
 };
+
+instance.interceptors.request.use(config => {
+  const token = localStorage.getItem('access_token');
+  if (token) config.headers['Authorization'] = `Bearer ${token}`;
+  return config;
+});
 
 instance.interceptors.response.use(
   res => res,

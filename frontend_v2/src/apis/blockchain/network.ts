@@ -10,7 +10,7 @@ export const switchToGiwaSepolia = async (): Promise<void> => {
     throw new Error('MetaMask가 설치되지 않았습니다')
   }
 
-  const chainIdHex = '0x16506' // 91342를 16진수로 변환
+  const chainIdHex = '0x164CE' // 91342
 
   try {
     // 먼저 네트워크 전환 시도
