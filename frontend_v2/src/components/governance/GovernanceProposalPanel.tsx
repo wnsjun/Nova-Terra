@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import ProposalCard from './ProposalCard'
+import CreateProposalModal from './CreateProposalModal'
 import { getProposalsByProperty, mapProposalStatusToUI } from '../../apis/properties'
 
 interface Proposal {
@@ -9,6 +10,8 @@ interface Proposal {
   description: string
   status: 'active' | 'passed' | 'rejected' | 'executed'
   deadline?: string
+  startAt?: number
+  endTime?: number
   voteFor: number
   voteAgainst: number
   voterCount: number
@@ -40,6 +43,7 @@ export default function GovernanceProposalPanel({
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   const myVotingPower = '2,450' // 내 투표권수 하드코딩
   const totalVoters = '5,500' //총 투표권수 하드코딩
@@ -66,44 +70,40 @@ export default function GovernanceProposalPanel({
     return `${hours}시간 ${minutes}분 후 종료`
   }
 
-  // Fetch proposals when panel opens or property changes
-  useEffect(() => {
-    const fetchProposals = async () => {
-      if (!isOpen || !property) {
-        setProposals([])
-        return
-      }
-
-      try {
-        setIsLoading(true)
-        setError(null)
-        const proposalsData = await getProposalsByProperty(property.id)
-
-        // Transform API data to UI format
-        const transformedProposals: Proposal[] = proposalsData.map((proposal, index) => ({
-          id: proposal.id,
-          proposalNumber: `#${proposalsData.length - index}`,
-          title: proposal.title,
-          description: proposal.description,
-          status: mapProposalStatusToUI(proposal.status),
-          deadline: formatDeadline(proposal.endTime, proposal.status),
-          // Hardcoded vote counts: 30% for, 70% against
-          voteFor: 30,
-          voteAgainst: 70,
-          voterCount: 0,
-        }))
-
-        setProposals(transformedProposals)
-      } catch (err) {
-        console.error('제안 목록 조회 실패:', err)
-        setError('제안 목록을 불러오는데 실패했습니다.')
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchProposals = useCallback(async () => {
+    if (!isOpen || !property) {
+      setProposals([])
+      return
     }
-
-    fetchProposals()
+    try {
+      setIsLoading(true)
+      setError(null)
+      const proposalsData = await getProposalsByProperty(property.id)
+      const transformedProposals: Proposal[] = proposalsData.map((proposal, index) => ({
+        id: proposal.id,
+        proposalNumber: `#${proposalsData.length - index}`,
+        title: proposal.title,
+        description: proposal.description,
+        status: mapProposalStatusToUI(proposal.status),
+        deadline: formatDeadline(proposal.endTime, proposal.status),
+        startAt: proposal.startAt,
+        endTime: proposal.endTime,
+        voteFor: 30,
+        voteAgainst: 70,
+        voterCount: 0,
+      }))
+      setProposals(transformedProposals)
+    } catch (err) {
+      console.error('제안 목록 조회 실패:', err)
+      setError('제안 목록을 불러오는데 실패했습니다.')
+    } finally {
+      setIsLoading(false)
+    }
   }, [isOpen, property])
+
+  useEffect(() => {
+    fetchProposals()
+  }, [fetchProposals])
 
   const filters = ['전체', '진행 중', '통과됨', '거부됨']
 
@@ -245,7 +245,7 @@ export default function GovernanceProposalPanel({
                   ))}
                 </div>
                 <button
-                  className="hidden sm:flex bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white p-2 rounded-lg transition-colors"
+                  className="hidden sm:flex bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white p-2 rounded-lg transition-colors cursor-pointer"
                   title="Filter"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -312,7 +312,10 @@ export default function GovernanceProposalPanel({
           {/* Sidebar Info */}
           <div className="space-y-6">
             {/* Create Proposal Button */}
-            <button className="w-full bg-white hover:bg-gray-100 text-black transition-colors py-3 px-6 rounded-lg font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="w-full bg-white hover:bg-gray-100 text-black transition-colors py-3 px-6 rounded-lg font-bold text-sm flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(255,255,255,0.2)]"
+            >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
@@ -385,6 +388,13 @@ export default function GovernanceProposalPanel({
           </div>
         </div>
       </div>
+
+      <CreateProposalModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        propertyId={property.id}
+        onSuccess={fetchProposals}
+      />
     </>
   )
 }

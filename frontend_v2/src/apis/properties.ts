@@ -160,6 +160,25 @@ export const getProposalStatusLabel = (status: ProposalStatus): string => {
   return statusMap[status]
 }
 
+export interface CreateProposalRequest {
+  propertyId: string
+  title: string
+  description: string
+  startAt: number
+  endAt: number
+  onChainProposalId: number
+}
+
+export const createProposal = async (data: CreateProposalRequest): Promise<ProposalResponse> => {
+  try {
+    const response = await instance.post<{ code: number; message: string; data: ProposalResponse }>('/api/v1/governance/proposals', data)
+    return response.data.data
+  } catch (error) {
+    console.error('제안 생성 실패:', error)
+    throw error
+  }
+}
+
 export const mapProposalStatusToUI = (status: ProposalStatus): 'active' | 'passed' | 'rejected' | 'executed' => {
   const statusMap: Record<ProposalStatus, 'active' | 'passed' | 'rejected' | 'executed'> = {
     PENDING: 'active',
