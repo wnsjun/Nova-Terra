@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Topbar from '../layouts/Topbar'
+import { instance } from '../utils/axiosInstance'
 import bank1 from '../assets/bank1.png'
 import bank2 from '../assets/bank2.png'
 import bank3 from '../assets/bank3.png'
@@ -36,7 +37,7 @@ export default function Accredited() {
     setPlaidScreen('success')
     await new Promise(r => setTimeout(r, 1000))
     setModalOpen(false)
-    localStorage.setItem('novaterra_accredited_verified', 'true')
+    await instance.post('/api/v1/users/me/credit-check')
     setStep('done')
   }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getWalletAddress } from '../apis/blockchain/provider'
+import { instance } from '../utils/axiosInstance'
 
 interface OnChainIDModalProps {
   isOpen: boolean
@@ -22,8 +23,13 @@ export default function OnChainIDModal({ isOpen, onClose}: OnChainIDModalProps) 
       } catch (error) {
         console.error('지갑 주소 가져오기 실패:', error)
       }
-      setIsKyc(localStorage.getItem('novaterra_kyc_verified') === 'true')
-      setIsAccredited(localStorage.getItem('novaterra_accredited_verified') === 'true')
+      try {
+        const { data } = await instance.get('/api/v1/users/me/verifications')
+        setIsKyc(data.data.kycVerified === true)
+        setIsAccredited(data.data.creditCheckCompleted === true)
+      } catch {
+        // 미인증 상태로 유지
+      }
     }
     fetchAll()
   }, [isOpen])

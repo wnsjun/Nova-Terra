@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadStripe } from '@stripe/stripe-js'
 import Topbar from '../layouts/Topbar'
+import { instance } from '../utils/axiosInstance'
 
 type Step = 'stripe' | 'done'
 
@@ -50,8 +51,8 @@ export default function Kyc() {
         return
       }
 
-      // 3. 인증 통과 → 완료
-      localStorage.setItem('novaterra_kyc_verified', 'true')
+      // 3. 인증 통과 → 백엔드 KYC 기록
+      await instance.post('/api/v1/users/me/kyc')
       setStep('done')
     } catch (err: any) {
       setError(err.message ?? 'Stripe 인증에 실패했습니다.')
