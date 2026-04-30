@@ -96,8 +96,9 @@ public class RentalIncome {
         this.status = RentalIncomeStatus.PENDING;
     }
 
-    /* 블록체인 전송을 위한 KRWT 수량 */
+    /* 블록체인 전송을 위한 KRWT 수량. KRWT는 18 decimals이므로 사람 단위 → wei 단위 변환. */
     public java.math.BigInteger getKrwtAmountAsBigInteger() {
-        return java.math.BigInteger.valueOf(this.krwtAmount);
+        return java.math.BigInteger.valueOf(this.krwtAmount)
+                .multiply(java.math.BigInteger.TEN.pow(18));
     }
 }

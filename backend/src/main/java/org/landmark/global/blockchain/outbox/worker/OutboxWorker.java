@@ -71,7 +71,7 @@ public class OutboxWorker {
             String txHash = switch (outbox.getTxType()) {
                 case KRWT_MINT -> blockchainWalletService.mintKrwt(
                         outbox.getToAddress(),
-                        new BigInteger(outbox.getAmount()),
+                        toWei(outbox.getAmount()),
                         nonce
                 );
                 case KRWT_TRANSFER, SNAPSHOT, CREATE_DIVIDEND ->
@@ -83,5 +83,10 @@ public class OutboxWorker {
             nonceManager.rollback(nonce);
             throw e;
         }
+    }
+
+    /* outbox.amount(사람 단위, 예: "2000000")를 KRWT 18 decimals 적용한 wei 단위로 변환. */
+    private static BigInteger toWei(String humanAmount) {
+        return new BigInteger(humanAmount).multiply(BigInteger.TEN.pow(18));
     }
 }
