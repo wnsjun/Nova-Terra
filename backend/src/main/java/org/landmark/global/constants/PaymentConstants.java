@@ -22,5 +22,5 @@ public class PaymentConstants {
     public static final String PAYMENT_METHOD_VIRTUAL_ACCOUNT = "VIRTUAL_ACCOUNT";
 
     // 임대인 기본 이름 (정보 없을 시)
-    public static final String DEFAULT_TENANT_NAME = "증권사";
+    public static final String DEFAULT_TENANT_NAME = "세입자";
 }

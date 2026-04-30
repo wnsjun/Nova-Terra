@@ -21,6 +21,9 @@ public class BlockchainConfig {
     @Value("${blockchain.network.rpc-url:}")
     private String rpcUrl;
 
+    @Value("${blockchain.network.ws-url:}")
+    private String wsUrl;
+
     @Value("${blockchain.network.chain-id:0}")
     private Long chainId;
 

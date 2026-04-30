@@ -42,6 +42,7 @@ cloud:
 blockchain:
   network:
     rpc-url: ${BLOCKCHAIN_RPC_URL}
+    ws-url: ${BLOCKCHAIN_WS_URL:}
     chain-id: 91342
 
   wallet:

@@ -28,7 +28,10 @@ public class UserHolding {
     private Property property;
 
     @Column(name = "amount", nullable = false)
-    private Long amount;  // 보유 토큰 수량
+    private Long amount;  // 보유 토큰 수량 (사람 단위)
+
+    @Column(name = "krwt_cost", nullable = false)
+    private Long krwtCost;  // 누적 매수 비용 (KRWT, 사람 단위)
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Long createdAt;
@@ -36,12 +39,22 @@ public class UserHolding {
     @PrePersist
     protected void onCreate() {
         this.createdAt = System.currentTimeMillis() / 1000L;
+        if (this.krwtCost == null) {
+            this.krwtCost = 0L;
+        }
     }
 
     @Builder
-    public UserHolding(User user, Property property, Long amount) {
+    public UserHolding(User user, Property property, Long amount, Long krwtCost) {
         this.user = user;
         this.property = property;
         this.amount = amount;
+        this.krwtCost = krwtCost == null ? 0L : krwtCost;
+    }
+
+    /* 추가 매수 시 누적 합산 */
+    public void addPurchase(Long additionalAmount, Long additionalCost) {
+        this.amount += additionalAmount;
+        this.krwtCost += additionalCost;
     }
 }

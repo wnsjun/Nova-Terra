@@ -203,9 +203,13 @@ public class BlockchainWalletService {
 
             // 트랜잭션 영수증 대기 및 조회
             TransactionReceipt receipt = waitForTransactionReceipt(txHash);
+            if (!"0x1".equals(receipt.getStatus())) {
+                log.error("Snapshot 트랜잭션 revert - txHash: {}, status: {} (SNAPSHOT_ROLE 미부여 또는 컨트랙트 조건 미충족)",
+                        txHash, receipt.getStatus());
+                throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED);
+            }
 
             // Snapshot 이벤트에서 snapshotId 추출
-            // event Snapshot(uint256 id)
             BigInteger snapshotId = extractSnapshotIdFromReceipt(receipt);
             log.info("Snapshot ID 추출 완료 - snapshotId: {}", snapshotId);
 
