@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import DirectDelegationInput from './DirectDelegationInput'
 
 interface DelegationHistory {
   id: string
@@ -104,7 +105,7 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
 
       {/* Panel */}
       <div
-        className={`fixed right-0 w-full md:w-1/2 bg-black border-l border-gray-600 shadow-2xl transform transition-transform duration-300 ease-out z-50 overflow-y-auto ${
+        className={`fixed right-0 w-full md:w-1/2 bg-[#10131e] border-l border-gray-600 shadow-2xl transform transition-transform duration-300 ease-out z-50 overflow-y-auto ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ top: '60px', height: 'calc(100vh - 60px)' }}
@@ -112,7 +113,7 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+          className="absolute top-4 right-4 z-10 p-2 rounded-lg bg-[#1c1f2b] hover:bg-gray-700 text-white transition-colors"
         >
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -133,13 +134,13 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
               </svg>
               투표권 위임
             </h1>
-            <p className="text-gray-400">전문가에게 투표권을 위임하고 효율적으로 거버넌스에 참여하세요</p>
+            <p className="text-gray-300">전문가에게 투표권을 위임하고 효율적으로 거버넌스에 참여하세요</p>
           </div>
 
           {/* Summary Card */}
           <div className="bg-linear-to-br from-purple-500/10 to-transparent border border-purple-500/30 rounded-xl p-6 mb-8">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">현재 위임된 투표권</p>
+              <p className="text-gray-200 text-sm font-medium uppercase tracking-wider">현재 위임된 투표권</p>
               <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/20 text-purple-400 uppercase border border-purple-500/30">
                 Active
               </span>
@@ -150,17 +151,24 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
             </p>
           </div>
 
+          {/* Direct Delegation */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-4">직접 위임</h2>
+            <DirectDelegationInput />
+          </div>
+
           {/* Available Agents */}
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-white mb-4">위임 가능한 에이전트</h2>
+            <h2 className="text-xl font-bold text-white mb-1">추천 에이전트</h2>
+            <p className="text-gray-300 text-sm mb-4">신뢰할 수 있는 검증된 에이전트에게 투표권을 위임하세요.</p>
             <div className="space-y-3">
               {availableAgents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-gray-600 bg-gray-800 hover:bg-gray-750 transition-colors"
+                  className="flex items-center justify-between p-4 rounded-xl border border-gray-600 bg-[#1c1f2b] hover:bg-gray-750 transition-colors"
                 >
                   <div className="flex items-center gap-4 flex-1">
-                    <div className="w-12 h-12 rounded-full bg-gray-900 border border-gray-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[#10131e] border border-gray-600 flex items-center justify-center">
                       <svg className="w-6 h-6 text-[#1ABCF7]" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                       </svg>
@@ -172,8 +180,8 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
                           Lv {agent.level}
                         </span>
                       </div>
-                      <p className="text-gray-400 text-sm mb-1">{agent.specialty}</p>
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <p className="text-gray-300 text-sm mb-1">{agent.specialty}</p>
+                      <div className="flex items-center gap-3 text-xs text-gray-400">
                         <span>위임된 투표권: {agent.totalDelegated} NVT</span>
                         <span>•</span>
                         <span className="text-green-400">성과: {agent.performance}%</span>
@@ -195,7 +203,7 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
               {delegationHistory.map((item) => (
                 <div
                   key={item.id}
-                  className="p-4 rounded-xl border border-gray-600 bg-gray-800"
+                  className="p-4 rounded-xl border border-gray-600 bg-[#1c1f2b]"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -205,7 +213,7 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
                           Lv {item.agentLevel}
                         </span>
                       </div>
-                      <p className="text-gray-400 text-sm">{item.propertyName}</p>
+                      <p className="text-gray-300 text-sm">{item.propertyName}</p>
                     </div>
                     <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium rounded-lg transition-colors">
                       위임 해제
@@ -217,9 +225,9 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
                         <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                       </svg>
                       <span className="text-white font-bold text-sm">{item.votingPower}</span>
-                      <span className="text-gray-400 text-xs">NVT</span>
+                      <span className="text-gray-300 text-xs">NVT</span>
                     </div>
-                    <span className="text-gray-400 text-xs">{item.delegatedDate}</span>
+                    <span className="text-gray-300 text-xs">{item.delegatedDate}</span>
                   </div>
                 </div>
               ))}
@@ -227,7 +235,7 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
           </div>
 
           {/* Info Section */}
-          <div className="bg-gray-800 border border-gray-600 rounded-xl p-6">
+          <div className="bg-[#1c1f2b] border border-gray-600 rounded-xl p-6">
             <h3 className="text-white font-bold mb-3 flex items-center gap-2">
               <svg className="w-5 h-5 text-[#1ABCF7]" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -238,7 +246,7 @@ export default function DelegationPanel({ isOpen, onClose }: DelegationPanelProp
               </svg>
               위임 안내
             </h3>
-            <ul className="space-y-2 text-sm text-gray-400">
+            <ul className="space-y-2 text-sm text-gray-300">
               <li className="flex gap-2">
                 <span className="text-[#1ABCF7]">•</span>
                 <span>위임된 투표권은 에이전트가 대신 투표에 참여합니다.</span>
