@@ -265,7 +265,16 @@ public class BlockchainWalletService {
             }
 
             String txHash = transactionResponse.getTransactionHash();
-            log.info("배당 생성 성공 - txHash: {}, snapshotId: {}, amount: {}", txHash, snapshotId, amount);
+            log.info("배당 생성 TX 전송 - txHash: {}, snapshotId: {}, amount: {}", txHash, snapshotId, amount);
+
+            // 영수증 대기 + revert 검증 — 안 하면 체인 revert를 우리는 성공으로 잘못 마킹함
+            TransactionReceipt receipt = waitForTransactionReceipt(txHash);
+            if (!"0x1".equals(receipt.getStatus())) {
+                log.error("배당 생성 트랜잭션 revert - txHash: {}, status: {}", txHash, receipt.getStatus());
+                throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED);
+            }
+
+            log.info("배당 생성 컨펌 완료 - txHash: {}, snapshotId: {}, amount: {}", txHash, snapshotId, amount);
             return txHash;
 
         } catch (BusinessException e) {
