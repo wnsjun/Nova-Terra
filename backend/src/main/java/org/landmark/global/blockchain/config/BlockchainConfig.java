@@ -81,7 +81,7 @@ public class BlockchainConfig {
         // return new DefaultGasProvider();
 
         BigInteger gasPrice = BigInteger.valueOf(1_000_000_000L); // 1 Gwei
-        BigInteger gasLimit = BigInteger.valueOf(3_000_000L); // 3M gas limit
+        BigInteger gasLimit = BigInteger.valueOf(500_000L); // 500K gas limit
 
         log.info("Gas Provider 설정 - gasPrice: {} Gwei, gasLimit: {}",
                 gasPrice.divide(BigInteger.valueOf(1_000_000_000L)), gasLimit);
