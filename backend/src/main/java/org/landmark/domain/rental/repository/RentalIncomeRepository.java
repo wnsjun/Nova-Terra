@@ -16,6 +16,7 @@ public interface RentalIncomeRepository extends JpaRepository<RentalIncome, Stri
     Optional<RentalIncome> findByTossOrderId(String tossOrderId);
     Optional<RentalIncome> findByTossPaymentKey(String tossPaymentKey);
     List<RentalIncome> findByPropertyIdOrderByDepositDateDesc(String propertyId);
+    List<RentalIncome> findByPropertyIdAndStatusOrderByDepositDateDesc(String propertyId, RentalIncomeStatus status);
     List<RentalIncome> findByStatus(RentalIncomeStatus status);
 
     @Query("SELECT r FROM RentalIncome r WHERE r.status = :status AND r.distributedAt >= :after")

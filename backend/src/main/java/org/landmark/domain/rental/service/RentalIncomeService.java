@@ -171,10 +171,12 @@ public class RentalIncomeService {
         executeBlockchainDistribution(rentalIncome);
     }
 
-    /* Property별 임대 수익 내역 조회 */
+    /* Property별 임대 수익 내역 조회 — 분배 완료된 것만 반환 */
     @Transactional(readOnly = true)
     public List<RentalIncomeResponse> getRentalIncomesByProperty(String propertyId) {
-        return rentalIncomeRepository.findByPropertyIdOrderByDepositDateDesc(propertyId).stream()
+        return rentalIncomeRepository
+                .findByPropertyIdAndStatusOrderByDepositDateDesc(propertyId, RentalIncomeStatus.DISTRIBUTED)
+                .stream()
                 .map(this::toResponse)
                 .toList();
     }
