@@ -120,12 +120,11 @@ public class TokensPurchasedEventListener {
                     new TypeReference<Uint256>() {}
             );
             List<Type> values = FunctionReturnDecoder.decode(eventLog.getData(), outputs);
-            BigInteger amountWei = (BigInteger) values.get(0).getValue();
-            BigInteger costWei = (BigInteger) values.get(1).getValue();
+            BigInteger amountRaw = (BigInteger) values.get(0).getValue();
+            BigInteger costRaw = (BigInteger) values.get(1).getValue();
 
-            BigInteger scale = BigInteger.TEN.pow(18);
-            long amount = amountWei.divide(scale).longValueExact();
-            long cost = costWei.divide(scale).longValueExact();
+            long amount = amountRaw.longValueExact();
+            long cost = costRaw.longValueExact();
 
             log.info("TokensPurchased 처리 - txHash: {}, buyer: {}, propertyId: {}, amount: {}, cost: {}",
                     eventLog.getTransactionHash(), buyerAddress, propertyId, amount, cost);
