@@ -105,7 +105,7 @@ export default function Governance() {
       try {
         setIsLoading(true)
         setError(null)
-        const holdings = await getPortfolio(walletAddress)
+        const holdings = await getPortfolio()
         const convertedProperties = holdings.map(convertToProperty)
         setProperties(convertedProperties)
       } catch (err) {

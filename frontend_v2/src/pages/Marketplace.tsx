@@ -29,6 +29,8 @@ interface Property {
   highlights: string[]
   dividendCycle: string
   nextDividend: string
+  latitude?: number
+  longitude?: number
 }
 
 const MOCK_PROPERTIES: Property[] = [
@@ -178,7 +180,9 @@ export default function Marketplace() {
             `주차 공간: ${prop.parkingSpaces}면`
           ],
           dividendCycle: '매월',
-          nextDividend: '15일 후'
+          nextDividend: '15일 후',
+          latitude: prop.latitude,
+          longitude: prop.longitude,
         }))
         setProperties(transformedProperties)
       } catch (error) {
@@ -235,28 +239,43 @@ export default function Marketplace() {
     <div className="min-h-screen bg-black">
       <Topbar />
 
-      <section className="relative flex flex-col items-center justify-center gap-8 overflow-hidden px-4 text-center" style={{ marginTop: '120px' }}>
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-surface-dark via-background-dark to-background-dark opacity-60"></div>
-
-        <div className="flex max-w-3xl flex-col gap-4">
-          <h1 className="text-4xl font-black leading-tight tracking-tighter text-white md:text-6xl">
-            <span className="text-[#1ABCF7] bg-clip-text bg-linear-to-r from-primary to-accent">미래</span>의 부동산을 소유하세요
-          </h1>
-          <p className="text-lg text-white md:text-xl">
-            높은 수익률, 즉각적인 유동성, 블록체인 투명성을 갖춘 프리미엄 토큰화된 부동산에 투자하세요.
-          </p>
+      {/* Full-width map hero */}
+      <section className="relative w-full" style={{ marginTop: '0px', height: '100vh' }}>
+        <PropertyMap
+          properties={properties.filter(p => p.latitude && p.longitude).map(p => ({
+            id: p.id,
+            name: p.name,
+            address: p.locationDetail,
+            coverImageUrl: p.image,
+            buildingType: p.type,
+            occupancyRate: p.occupancyRate,
+            totalMonthlyRent: p.monthlyRent,
+            totalValuation: p.totalValue,
+            pricePerToken: p.stoPrice,
+            latitude: p.latitude!,
+            longitude: p.longitude!,
+          }))}
+          onPropertyClick={(id) => {
+            const prop = properties.find(p => p.id === id)
+            if (prop) handlePropertyClick(prop)
+          }}
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 px-4 text-center bg-black/20 pointer-events-none">
+          <div className="flex max-w-3xl flex-col gap-4">
+            <h1 className="text-4xl font-black leading-tight tracking-tighter text-white md:text-6xl">
+              <span className="text-[#1ABCF7]">미래</span>의 부동산을 소유하세요
+            </h1>
+            <p className="text-lg text-white md:text-xl">
+              높은 수익률, 즉각적인 유동성, 블록체인 투명성을 갖춘 프리미엄 토큰화된 부동산에 투자하세요.
+            </p>
+          </div>
+          <div className="pointer-events-auto">
+            <SearchBar />
+          </div>
         </div>
-
-        <SearchBar />
       </section>
 
-      <section className="px-4 mt-16 lg:px-10">
-        <div className="mx-auto max-w-7xl">
-          <PropertyMap />
-        </div>
-      </section>
-
-      <div className="w-full border-b border-gray-500 mt-10"></div>
+      <div className="w-full border-b border-gray-500"></div>
       <FilterBar />
       <div className="w-full border-b border-gray-500"></div>
 

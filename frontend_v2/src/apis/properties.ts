@@ -25,6 +25,8 @@ export interface PropertyResponse {
   expenseRate: number
   feeRate: number
   status: 'FUNDING' | 'ACTIVE' | 'COMPLETED'
+  latitude?: number
+  longitude?: number
 }
 
 export interface PropertiesApiResponse {
