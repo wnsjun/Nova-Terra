@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import STOPurchase from '../markettrade/STOPurchase'
 import STOConfirm from '../markettrade/STOConfirm'
 import STOComplete from '../markettrade/STOComplete'
-import { buyPropertyToken } from '../../apis/blockchain/contracts/propertyToken'
+import { getPropertyBasicInfo, approveKRWT, buyPropertyToken } from '../../apis/blockchain/contracts/propertyToken'
 
 interface STOPurchasePanelProps {
   isOpen: boolean
@@ -20,10 +20,49 @@ interface STOPurchasePanelProps {
 export default function STOPurchasePanel({ isOpen, onClose, property, symbol }: STOPurchasePanelProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
-  const [quantity, setQuantity] = useState(10)
-  const [transactionId, setTransactionId] = useState('0x7f3a...9c2b1e4')
+  const [quantity, setQuantity] = useState(0)
+  const [transactionId, setTransactionId] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [purchaseError, setPurchaseError] = useState<string | null>(null)
+  const [onChainInfo, setOnChainInfo] = useState<{
+    tokenPrice: string
+    remainingSupply: string
+    paymentToken: string
+    initialized: boolean
+  } | null>(null)
+
+  useEffect(() => {
+    if (!isOpen || !property) return
+    getPropertyBasicInfo(property.id)
+      .then(info => {
+        console.log('[OnChain] 원본 값:', {
+          maxSupply: info.maxSupply,
+          totalSupply: info.totalSupply,
+          remainingSupply: info.remainingSupply,
+          tokenPrice: info.tokenPrice,
+          paymentToken: info.paymentToken,
+        })
+        console.log('[OnChain] 변환 값:', {
+          remainingSupply_토큰수: Number(BigInt(info.remainingSupply) / BigInt(10 ** 18)),
+          tokenPrice_KRWT: info.tokenPrice,
+        })
+        setOnChainInfo({
+          tokenPrice: info.tokenPrice,
+          remainingSupply: info.remainingSupply,
+          paymentToken: info.paymentToken,
+          initialized: info.initialized,
+        })
+      })
+      .catch(console.error)
+  }, [isOpen, property?.id])
 
   if (!property) return null
+
+  const maxAvailable = onChainInfo
+    ? Number(BigInt(onChainInfo.remainingSupply) / BigInt(10 ** 18))
+    : undefined
+
+  const onChainPrice = onChainInfo ? onChainInfo.tokenPrice : `${property.stoPrice.toFixed(0)}`
 
   const handleNext = (purchaseQuantity: number) => {
     setQuantity(purchaseQuantity)
@@ -31,32 +70,39 @@ export default function STOPurchasePanel({ isOpen, onClose, property, symbol }: 
   }
 
   const handleBack = () => {
+    setPurchaseError(null)
     setStep(1)
   }
 
   const handleConfirm = async () => {
+    if (!onChainInfo) return
+    if (!onChainInfo.initialized) {
+      setPurchaseError('아직 판매 준비가 완료되지 않은 자산입니다. 잠시 후 다시 시도해주세요.')
+      return
+    }
+    setIsLoading(true)
+    setPurchaseError(null)
     try {
-      // 1. 로딩 상태 표시 (선택사항)
-      // setIsLoading(true)
-
-      // 2. buy 함수 호출
-      const txHash = await buyPropertyToken(
-        property.id,  // 컨트랙트 주소 필요
-        quantity                    // 구매 수량
-      )
-
-      // 3. 트랜잭션 ID 저장
+      const totalCost = BigInt(onChainInfo.tokenPrice) * BigInt(quantity)
+      await approveKRWT(onChainInfo.paymentToken, property.id, totalCost)
+      const txHash = await buyPropertyToken(property.id, quantity)
       setTransactionId(txHash)
-
-      // 4. 완료 단계로 이동
       setStep(3)
-
-    } catch (error) {
-      console.error('구매 실패:', error)
-      // 에러 처리 (alert, toast 등)
-      alert('구매 중 오류가 발생했습니다: ' + (error as Error).message)
+    } catch (err: unknown) {
+      console.error('[구매 실패] 전체 에러:', err)
+      const ethErr = err as { code?: number | string; message?: string; reason?: string }
+      console.error('[구매 실패] code:', ethErr.code, '| message:', ethErr.message, '| reason:', ethErr.reason)
+      if (ethErr.code === 4001 || ethErr.code === 'ACTION_REJECTED') {
+        setPurchaseError('서명이 거부되었습니다.')
+      } else if (ethErr.reason?.includes('not initialized') || ethErr.message?.includes('not initialized')) {
+        setPurchaseError('아직 판매 준비가 완료되지 않은 자산입니다. 잠시 후 다시 시도해주세요.')
+      } else if (ethErr.reason?.includes('not verified') || ethErr.message?.includes('not verified')) {
+        setPurchaseError('지갑 주소가 인증되지 않았습니다. KYC 등록 후 구매 가능합니다.')
+      } else {
+        setPurchaseError('구매 중 오류가 발생했습니다. 다시 시도해주세요.')
+      }
     } finally {
-      // setIsLoading(false)
+      setIsLoading(false)
     }
   }
 
@@ -78,11 +124,10 @@ export default function STOPurchasePanel({ isOpen, onClose, property, symbol }: 
     setTimeout(() => setStep(1), 300)
   }
 
-  const stoPrice = `${property.stoPrice.toFixed(0)} KRWT`
-  const pricePerToken = property.stoPrice
-  const subtotal = quantity * pricePerToken
-  const gasFee = 1500
-  const totalAmount = subtotal + gasFee
+  const stoPrice = `${onChainPrice} KRWT`
+  const totalAmount = onChainInfo
+    ? quantity * Number(onChainInfo.tokenPrice)
+    : quantity * property.stoPrice
 
   return (
     <>
@@ -115,7 +160,14 @@ export default function STOPurchasePanel({ isOpen, onClose, property, symbol }: 
         <div className="px-8 py-12">
           {/* STO Purchase Steps */}
           {step === 1 && (
-            <STOPurchase stoPrice={stoPrice} propertyName={property.name} propertyLocation={property.location} symbol={symbol} onNext={handleNext} />
+            <STOPurchase
+              stoPrice={stoPrice}
+              propertyName={property.name}
+              propertyLocation={property.location}
+              symbol={symbol}
+              maxAvailable={maxAvailable}
+              onNext={handleNext}
+            />
           )}
           {step === 2 && (
             <STOConfirm
@@ -124,6 +176,8 @@ export default function STOPurchasePanel({ isOpen, onClose, property, symbol }: 
               quantity={quantity}
               onBack={handleBack}
               onConfirm={handleConfirm}
+              isLoading={isLoading}
+              error={purchaseError}
             />
           )}
           {step === 3 && (

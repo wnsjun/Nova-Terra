@@ -19,6 +19,7 @@ export default function MarketTrade() {
     fundingPercentage: number
     investors: number
     symbol: string
+    contractAddress: string
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -46,6 +47,7 @@ export default function MarketTrade() {
           fundingPercentage: 75,
           investors: 1000,
           symbol: 'NPT', // TODO: API에서 symbol 가져오기
+          contractAddress: data.id,
         })
       } catch (error) {
         console.error('부동산 상세 조회 실패:', error)
@@ -99,6 +101,7 @@ export default function MarketTrade() {
         fundingPercentage={currentProperty.fundingPercentage}
         investors={currentProperty.investors}
         symbol={currentProperty.symbol}
+        contractAddress={currentProperty.contractAddress}
       />
     </div>
   )

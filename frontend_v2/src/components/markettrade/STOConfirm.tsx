@@ -7,9 +7,11 @@ interface STOConfirmProps {
   quantity: number
   onBack: () => void
   onConfirm: () => void
+  isLoading?: boolean
+  error?: string | null
 }
 
-export default function STOConfirm({ stoPrice, propertyName, quantity, onBack, onConfirm }: STOConfirmProps) {
+export default function STOConfirm({ stoPrice, propertyName, quantity, onBack, onConfirm, isLoading = false, error = null }: STOConfirmProps) {
   const [walletAddress, setWalletAddress] = useState<string>('')
 
   const pricePerToken = parseFloat(stoPrice.replace(/[^0-9.]/g, ''))
@@ -127,23 +129,42 @@ export default function STOConfirm({ stoPrice, propertyName, quantity, onBack, o
         <div className="grid grid-cols-3 gap-3 pt-2">
           <button
             onClick={onBack}
-            className="cursor-pointer col-span-1 rounded-xl border border-gray-600 bg-black py-4 text-sm font-bold text-gray-400 hover:border-gray-400 hover:text-white hover:bg-gray-800 transition-all"
+            disabled={isLoading}
+            className="cursor-pointer col-span-1 rounded-xl border border-gray-600 bg-black py-4 text-sm font-bold text-gray-400 hover:border-gray-400 hover:text-white hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             이전
           </button>
           <button
             onClick={onConfirm}
-            className="cursor-pointer col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#1ABCF7] py-4 text-base font-bold text-black shadow-[0_0_20px_rgba(26,188,247,0.4)] hover:bg-white hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] transition-all transform hover:-translate-y-0.5"
+            disabled={isLoading}
+            className="cursor-pointer col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#1ABCF7] py-4 text-base font-bold text-black shadow-[0_0_20px_rgba(26,188,247,0.4)] hover:bg-white hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#1ABCF7] disabled:hover:translate-y-0"
           >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            구매 확정 및 서명
+            {isLoading ? (
+              <>
+                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                처리 중...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                구매 확정 및 서명
+              </>
+            )}
           </button>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-2">
-          버튼을 클릭하면 메타마스크 지갑에서 서명 요청 팝업이 표시됩니다.
-        </p>
+        {error && (
+          <p className="text-center text-sm text-red-400 mt-2">{error}</p>
+        )}
+        {!error && (
+          <p className="text-center text-xs text-gray-400 mt-2">
+            버튼을 클릭하면 메타마스크 지갑에서 서명 요청 팝업이 표시됩니다.
+          </p>
+        )}
       </div>
     </div>
   )

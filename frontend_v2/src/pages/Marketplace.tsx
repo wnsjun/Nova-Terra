@@ -117,16 +117,15 @@ export default function Marketplace() {
 
         // 배치 내에서는 병렬 처리
         const promises = batch.map(async (property) => {
-          if (property.id) {
-            try {
-              const data = await getPropertyBasicInfo(property.id)
-              return { id: property.id, data }
-            } catch (error) {
-              console.error(`블록체인 데이터 로드 실패 (${property.id}):`, error)
-              return null
-            }
+          const isEthAddress = /^0x[0-9a-fA-F]{40}$/.test(property.id)
+          if (!isEthAddress) return null
+          try {
+            const data = await getPropertyBasicInfo(property.id)
+            return { id: property.id, data }
+          } catch (error) {
+            console.error(`블록체인 데이터 로드 실패 (${property.id}):`, error)
+            return null
           }
-          return null
         })
 
         const results = await Promise.all(promises)
