@@ -1,9 +1,11 @@
 package org.landmark.domain.governance.service;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.landmark.global.blockchain.service.BlockchainWalletService;
 import org.landmark.global.exception.BusinessException;
 import org.landmark.global.exception.ErrorCode;
 import org.landmark.domain.governance.domain.Proposal;
@@ -27,6 +29,7 @@ public class GovernanceServiceImpl implements GovernanceService {
   private final ProposalRepository proposalRepository;
   private final UserRepository userRepository;
   private final PropertyRepository propertyRepository;
+  private final BlockchainWalletService blockchainWalletService;
 
   /* 모든 제안 목록 조회 */
   @Override
@@ -60,7 +63,16 @@ public class GovernanceServiceImpl implements GovernanceService {
     Property property = propertyRepository.findById(request.propertyId())
         .orElseThrow(() -> new BusinessException(ErrorCode.PROPERTY_NOT_FOUND));
 
-    Proposal newProposal = request.toEntity(property, proposer);
+    String daoContractAddress = property.getDaoContractAddress();
+    if (daoContractAddress == null || daoContractAddress.isEmpty()) {
+      throw new BusinessException(ErrorCode.BLOCKCHAIN_NOT_INITIALIZED);
+    }
+
+    BigInteger onChainProposalId = blockchainWalletService.createGovernanceProposal(
+        daoContractAddress, request.description()
+    );
+
+    Proposal newProposal = request.toEntity(property, proposer, onChainProposalId);
     Proposal savedProposal = proposalRepository.save(newProposal);
 
     return ProposalResponse.from(savedProposal);

@@ -7,9 +7,12 @@ import org.landmark.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.web3j.abi.EventEncoder;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.TypeReference;
+import org.web3j.abi.datatypes.Event;
 import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Utf8String;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
@@ -368,6 +371,81 @@ public class BlockchainWalletService {
             log.error("KRWT approve sync 중 오류 - spender: {}, amount: {}", spenderAddress, amount, e);
             throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED);
         }
+    }
+
+    /* Governance 컨트랙트의 createProposal(string) 호출 → proposalId 반환 */
+    public BigInteger createGovernanceProposal(String governanceContractAddress, String description) {
+        validateInitialized();
+
+        if (governanceContractAddress == null || governanceContractAddress.isEmpty()) {
+            throw new BusinessException(ErrorCode.BLOCKCHAIN_NOT_INITIALIZED);
+        }
+
+        log.info("거버넌스 안건 생성 시작 - contract: {}", governanceContractAddress);
+
+        try {
+            Function function = new Function(
+                "createProposal",
+                Arrays.asList(new Utf8String(description)),
+                Arrays.asList(new TypeReference<Uint256>() {})
+            );
+
+            TransactionManager txManager = new RawTransactionManager(
+                web3j, credentials, blockchainConfig.getChainId()
+            );
+
+            EthSendTransaction response = txManager.sendTransaction(
+                gasProvider.getGasPrice(),
+                gasProvider.getGasLimit(),
+                governanceContractAddress,
+                FunctionEncoder.encode(function),
+                BigInteger.ZERO
+            );
+
+            if (response.hasError()) {
+                log.error("안건 생성 TX 전송 실패 - error: {}", response.getError().getMessage());
+                throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED);
+            }
+
+            String txHash = response.getTransactionHash();
+            log.info("안건 생성 TX 전송 - txHash: {}", txHash);
+
+            TransactionReceipt receipt = waitForTransactionReceipt(txHash);
+            if (!"0x1".equals(receipt.getStatus())) {
+                log.error("안건 생성 트랜잭션 revert - txHash: {}, status: {}", txHash, receipt.getStatus());
+                throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED);
+            }
+
+            BigInteger proposalId = extractProposalIdFromReceipt(receipt);
+            log.info("안건 생성 완료 - proposalId: {}, txHash: {}", proposalId, txHash);
+            return proposalId;
+
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("안건 생성 중 오류 - contract: {}", governanceContractAddress, e);
+            throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED);
+        }
+    }
+
+    private BigInteger extractProposalIdFromReceipt(TransactionReceipt receipt) {
+        Event event = new Event(
+            "ProposalCreated",
+            Arrays.asList(
+                new TypeReference<Uint256>(true) {},    // indexed proposalId
+                new TypeReference<Utf8String>(false) {} // description
+            )
+        );
+        String eventSignature = EventEncoder.encode(event);
+
+        for (org.web3j.protocol.core.methods.response.Log log : receipt.getLogs()) {
+            if (!log.getTopics().isEmpty() && log.getTopics().get(0).equals(eventSignature)) {
+                String proposalIdHex = log.getTopics().get(1);
+                return new BigInteger(proposalIdHex.substring(2), 16);
+            }
+        }
+
+        throw new BusinessException(ErrorCode.BLOCKCHAIN_TRANSACTION_FAILED);
     }
 
     /* 지정된 nonce로 raw transaction 서명 및 전송 (영수증 대기는 호출부에서) */

@@ -28,12 +28,9 @@ public record ProposalCreateRequest(
     Long startAt, // Unix time
 
     @NotNull(message = "투표 마감 시간은 필수입니다.")
-    Long endAt, // Unix time
-
-    @NotNull(message = "온체인 제안 ID는 필수입니다.")
-    BigInteger onChainProposalId
+    Long endAt // Unix time
 ) {
-    public Proposal toEntity(Property property, User proposer) {
+    public Proposal toEntity(Property property, User proposer, BigInteger onChainProposalId) {
         List<String> fixedChoices = Stream.of(VoteType.values())
             .map(Enum::name)
             .collect(Collectors.toList());
@@ -46,7 +43,7 @@ public record ProposalCreateRequest(
             .startAt(startAt)
             .endAt(endAt)
             .choices(fixedChoices)
-            .onChainProposalId(this.onChainProposalId)
+            .onChainProposalId(onChainProposalId)
             .build();
     }
 }
