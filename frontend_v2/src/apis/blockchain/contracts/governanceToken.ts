@@ -161,6 +161,15 @@ userAddress)
 }
 
 // ============================================
+//       총 공급량 조회
+// ============================================
+export const getTotalSupply = async (contractAddress: string): Promise<string> => {
+  const contract = await getGovernanceTokenContract(contractAddress)
+  const supply = await contract.totalSupply()
+  return supply.toString()
+}
+
+// ============================================
 //       위임 주소 조회
 // ============================================
 export const getDelegateOf = async (

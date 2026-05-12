@@ -3,6 +3,7 @@ import ProposalCard from './ProposalCard'
 import CreateProposalModal from './CreateProposalModal'
 import { getPropertyInfoByTokenAddress } from '../../apis/blockchain/contracts/tokenFactory'
 import { getGovernanceBasicInfo, getAllProposals, type ProposalInfo } from '../../apis/blockchain/contracts/governance'
+import { getTotalSupply } from '../../apis/blockchain/contracts/governanceToken'
 
 interface Proposal {
   id: string
@@ -15,6 +16,7 @@ interface Proposal {
   endTime?: number
   voteFor: number
   voteAgainst: number
+  participationRate: number
 }
 
 interface PropertyInfo {
@@ -82,11 +84,22 @@ export default function GovernanceProposalPanel({ isOpen, onClose, property }: G
       const govInfo = await getGovernanceBasicInfo(govAddr)
       setGovernanceTokenAddress(govInfo.governanceToken)
 
-      const onChain = await getAllProposals(govAddr)
+      const [onChain, totalSupplyStr] = await Promise.all([
+        getAllProposals(govAddr),
+        getTotalSupply(govInfo.governanceToken).catch(() => '0'),
+      ])
+      const totalSupplyBN = BigInt(totalSupplyStr)
+
       const transformed: Proposal[] = onChain.map((p, idx) => {
         const { title, description } = parseDesc(p.description)
         const deadlineTs = Number(p.deadline)
         const status = toStatus(p)
+        const forBN = BigInt(p.forVotes)
+        const againstBN = BigInt(p.againstVotes)
+        const totalVotesBN = forBN + againstBN
+        const participationRate = totalSupplyBN > 0n
+          ? Number((totalVotesBN * 10000n) / totalSupplyBN) / 100
+          : 0
         return {
           id: p.proposalId.toString(),
           onChainProposalId: p.proposalId,
@@ -96,8 +109,9 @@ export default function GovernanceProposalPanel({ isOpen, onClose, property }: G
           status,
           deadline: status === 'active' ? formatDeadline(deadlineTs) : undefined,
           endTime: deadlineTs,
-          voteFor: Number(BigInt(p.forVotes)),
-          voteAgainst: Number(BigInt(p.againstVotes)),
+          voteFor: Number(forBN),
+          voteAgainst: Number(againstBN),
+          participationRate,
         }
       })
       setProposals(transformed)

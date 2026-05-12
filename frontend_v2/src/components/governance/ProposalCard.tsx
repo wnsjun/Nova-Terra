@@ -16,6 +16,8 @@ interface ProposalCardProps {
   endTime?: number
   voteFor: number
   voteAgainst: number
+  participationRate?: number
+  proposer?: string
   governanceAddress: string
   governanceTokenAddress: string
   onVoteSuccess?: () => void
@@ -42,6 +44,8 @@ export default function ProposalCard({
   endTime,
   voteFor,
   voteAgainst,
+  participationRate,
+  proposer,
   governanceAddress,
   governanceTokenAddress,
   onVoteSuccess,
@@ -168,6 +172,16 @@ export default function ProposalCard({
         <h3 className={`text-xl font-bold text-white mb-2 transition-colors ${isActive ? 'group-hover:text-[#1ABCF7]' : ''}`}>
           {title}
         </h3>
+        {proposer && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <svg className="w-3.5 h-3.5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+            </svg>
+            <span className="text-xs text-gray-500">
+              {proposer.slice(0, 6)}...{proposer.slice(-4)}
+            </span>
+          </div>
+        )}
         <p className={`text-gray-400 text-sm leading-relaxed ${isCompleted ? 'mb-4 line-clamp-2' : 'mb-6'}`}>
           {description}
         </p>
@@ -175,6 +189,18 @@ export default function ProposalCard({
         {/* Voting Progress */}
         {!isCompleted && (
           <div className="mb-4">
+            {participationRate !== undefined && (
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-violet-400">참여율</span>
+                <span className="font-bold text-violet-400">{participationRate.toFixed(1)}%</span>
+              </div>
+            )}
+            <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden mb-3">
+              <div
+                className="h-full bg-violet-400 rounded-full transition-all"
+                style={{ width: `${Math.min(participationRate ?? 0, 100)}%` }}
+              />
+            </div>
             <div className="flex justify-between text-sm mb-2">
               <span className="font-medium text-[#1ABCF7]">찬성: {forPercentage.toFixed(0)}%</span>
               <span className="text-gray-400">반대: {againstPercentage.toFixed(0)}%</span>
