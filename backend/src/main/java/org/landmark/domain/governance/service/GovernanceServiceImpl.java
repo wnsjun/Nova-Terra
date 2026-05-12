@@ -1,16 +1,16 @@
 package org.landmark.domain.governance.service;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.landmark.global.blockchain.service.BlockchainWalletService;
 import org.landmark.global.exception.BusinessException;
 import org.landmark.global.exception.ErrorCode;
 import org.landmark.domain.governance.domain.Proposal;
 import org.landmark.domain.governance.domain.ProposalStatus;
-import org.landmark.domain.governance.dto.ProposalCreateRequest;
+import org.landmark.domain.governance.domain.VoteType;
 import org.landmark.domain.governance.dto.ProposalResponse;
 import org.landmark.domain.governance.repository.ProposalRepository;
 import org.landmark.domain.properties.domain.Property;
@@ -27,23 +27,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class GovernanceServiceImpl implements GovernanceService {
   private final ProposalRepository proposalRepository;
-  private final UserRepository userRepository;
   private final PropertyRepository propertyRepository;
-  private final BlockchainWalletService blockchainWalletService;
+  private final UserRepository userRepository;
 
-  /* 모든 제안 목록 조회 */
   @Override
   public List<ProposalResponse> findAllProposals(String propertyId) {
     List<Proposal> proposals;
-    Sort sort = Sort.by(Sort.Direction.DESC, "id");;
+    Sort sort = Sort.by(Sort.Direction.DESC, "id");
 
     if (propertyId != null && !propertyId.isEmpty()) {
-      // 특정 부동산 필터링 조회
       proposals = proposalRepository.findByProperty_Id(propertyId);
     } else {
       proposals = proposalRepository.findAll(sort);
     }
-    
+
     return proposals.stream()
         .map(ProposalResponse::from)
         .collect(Collectors.toList());
@@ -51,41 +48,61 @@ public class GovernanceServiceImpl implements GovernanceService {
 
   @Override
   @Transactional
-  public ProposalResponse createProposal(String userId, ProposalCreateRequest request) {
-
-    if (request.endAt() <= request.startAt()) {
-      throw new BusinessException(ErrorCode.INVALID_PROPOSAL_DATE);
+  public void recordProposal(BigInteger onChainProposalId, String proposerAddress,
+                              String title, String description, String propertyId, long now) {
+    if (proposalRepository.findByOnChainProposalId(onChainProposalId).isPresent()) {
+      return;
     }
 
-    User proposer = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-    Property property = propertyRepository.findById(request.propertyId())
-        .orElseThrow(() -> new BusinessException(ErrorCode.PROPERTY_NOT_FOUND));
-
-    String daoContractAddress = property.getDaoContractAddress();
-    if (daoContractAddress == null || daoContractAddress.isEmpty()) {
-      throw new BusinessException(ErrorCode.BLOCKCHAIN_NOT_INITIALIZED);
+    Property property = propertyRepository.findById(propertyId).orElse(null);
+    if (property == null) {
+      log.warn("ProposalCreated 이벤트 — 등록되지 않은 부동산, 스킵 - propertyId: {}", propertyId);
+      return;
     }
 
-    BigInteger onChainProposalId = blockchainWalletService.createGovernanceProposal(
-        daoContractAddress, request.description()
-    );
+    long endAt = now + (3L * 24 * 60 * 60);
 
-    Proposal newProposal = request.toEntity(property, proposer, onChainProposalId);
-    Proposal savedProposal = proposalRepository.save(newProposal);
+    List<String> choices = Arrays.stream(VoteType.values())
+        .map(Enum::name)
+        .collect(Collectors.toList());
 
-    return ProposalResponse.from(savedProposal);
+    Proposal proposal = Proposal.builder()
+        .onChainProposalId(onChainProposalId)
+        .property(property)
+        .proposerAddress(proposerAddress)
+        .title(title)
+        .description(description)
+        .startAt(now)
+        .endAt(endAt)
+        .choices(choices)
+        .build();
+
+    proposalRepository.save(proposal);
+    log.info("안건 저장 완료 - onChainProposalId: {}, propertyId: {}", onChainProposalId, propertyId);
+  }
+
+  @Override
+  @Transactional
+  public void recordVote(BigInteger onChainProposalId, boolean support, long votes) {
+    Proposal proposal = proposalRepository.findByOnChainProposalId(onChainProposalId)
+        .orElse(null);
+    if (proposal == null) {
+      log.warn("Voted 이벤트 — 해당 안건 없음, 스킵 - onChainProposalId: {}", onChainProposalId);
+      return;
+    }
+    proposal.addVote(support, votes);
   }
 
   @Override
   @Transactional
   public Long cancelProposal(String userId, Long proposalId) {
-
     Proposal proposal = proposalRepository.findById(proposalId)
         .orElseThrow(() -> new BusinessException(ErrorCode.PROPOSAL_NOT_FOUND));
 
-    if (!proposal.getProposer().getId().equals(userId)) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+    if (!proposal.getProposerAddress().equalsIgnoreCase(user.getWalletAddress())) {
       throw new BusinessException(ErrorCode.FORBIDDEN_EXCEPTION);
     }
 
@@ -94,7 +111,6 @@ public class GovernanceServiceImpl implements GovernanceService {
     }
 
     proposal.cancel();
-
     return proposal.getId();
   }
 }

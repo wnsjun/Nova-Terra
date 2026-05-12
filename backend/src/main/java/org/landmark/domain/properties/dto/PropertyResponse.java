@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 
 public record PropertyResponse(
         String id,
+        String daoContractAddress,
         String name,
         String description,
         String address,
@@ -26,6 +27,7 @@ public record PropertyResponse(
         String majorTenants,
         Long totalMonthlyRent,
         BigDecimal totalValuation,
+        Long totalTokens,
         BigDecimal pricePerToken,
         BigDecimal expenseRate,
         BigDecimal feeRate,
@@ -36,6 +38,7 @@ public record PropertyResponse(
     public static PropertyResponse from(Property property) {
         return new PropertyResponse(
                 property.getId(),
+                property.getDaoContractAddress(),
                 property.getName(),
                 property.getDescription(),
                 property.getAddress(),
@@ -54,6 +57,7 @@ public record PropertyResponse(
                 property.getMajorTenants(),
                 property.getTotalMonthlyRent(),
                 property.getTotalValuation(),
+                property.getTotalTokens(),
                 property.getPricePerToken(),
                 property.getExpenseRate(),
                 property.getFeeRate(),
