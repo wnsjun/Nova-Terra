@@ -7,6 +7,8 @@ import {
   isClaimedDividend,
   claimDividend
 } from '../../apis/blockchain/contracts/dividendDistributor'
+import { getBalanceAtSnapshot } from '../../apis/blockchain/contracts/propertyToken'
+import { getWalletAddress } from '../../apis/blockchain/provider'
 
 interface ClaimRecord {
   dividendId: number
@@ -53,6 +55,7 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
 
         // 2. 모든 배당 ID 가져오기
         const dividendIds = await getDividendIds(dividendAddress)
+        const userAddress = await getWalletAddress()
 
         // 3. 각 배당 정보 + 내 수령 가능 금액 병렬 조회
         const records: ClaimRecord[] = await Promise.all(
@@ -67,7 +70,22 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
             const date = new Date(Number(info.timestamp) * 1000)
             const month = `${date.getFullYear()}년 ${date.getMonth() + 1}월`
             const totalAmount = Number(BigInt(info.totalAmount) / BigInt(10 ** 18))
-            const myClaimable = Number(BigInt(myClaimableRaw) / BigInt(10 ** 18))
+
+            // 이미 클레임한 배당금은 getClaimableDividend가 0을 반환하므로
+            // dividendPerToken × balanceOfAt(snapshotId)로 직접 계산
+            let myClaimable: number
+            if (isClaimed && Number(info.snapshotId) > 0) {
+              try {
+                const balanceAtSnapshot = await getBalanceAtSnapshot(asset.id, userAddress, Number(info.snapshotId))
+                const PRECISION = BigInt(10 ** 18)
+                const wei = BigInt(info.dividendPerToken) * BigInt(balanceAtSnapshot) / PRECISION
+                myClaimable = Number(wei) / 10 ** 18
+              } catch {
+                myClaimable = 0
+              }
+            } else {
+              myClaimable = Number(BigInt(myClaimableRaw) / BigInt(10 ** 18))
+            }
 
             let status: ClaimRecord['status']
             if (isClaimed) {

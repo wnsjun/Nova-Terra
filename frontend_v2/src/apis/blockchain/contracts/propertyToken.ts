@@ -121,6 +121,16 @@ export const getUserBalance = async (
   return balance.toString()
 }
 
+export const getBalanceAtSnapshot = async (
+  contractAddress: string,
+  userAddress: string,
+  snapshotId: number
+): Promise<string> => {
+  const contract = await getPropertyContract(contractAddress)
+  const balance = await contract.balanceOfAt(userAddress, snapshotId)
+  return balance.toString()
+}
+
 
 // ============================================
 //       6. 전체 정보 한번에 조회
