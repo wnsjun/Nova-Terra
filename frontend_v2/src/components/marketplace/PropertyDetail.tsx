@@ -33,7 +33,7 @@ export default function PropertyDetail({
   fundingPercentage,
   investors,
   symbol,
-  contractAddress,
+  contractAddress: _contractAddress,
 }: PropertyDetailProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
