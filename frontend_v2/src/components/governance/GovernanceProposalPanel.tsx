@@ -392,7 +392,7 @@ export default function GovernanceProposalPanel({
       <CreateProposalModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        propertyId={property.id}
+        tokenAddress={property.id}
         onSuccess={fetchProposals}
       />
     </>

@@ -168,7 +168,6 @@ export interface CreateProposalRequest {
   description: string
   startAt: number
   endAt: number
-  onChainProposalId: number
 }
 
 export const createProposal = async (data: CreateProposalRequest): Promise<ProposalResponse> => {
