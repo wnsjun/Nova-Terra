@@ -202,28 +202,30 @@ export const getPropertyFullInfo = async (contractAddress: string): Promise<Prop
 }
 
 // ============================================
-//       7. STO 구매 (트랜잭션)
+//       7. KRWT approve + STO 구매 (트랜잭션)
 // ============================================
+const ERC20_APPROVE_ABI = ['function approve(address spender, uint256 amount) returns (bool)']
+
+export const approveKRWT = async (
+  krwtAddress: string,
+  spenderAddress: string,
+  amount: bigint
+): Promise<void> => {
+  const provider = await getProvider()
+  const signer = await provider.getSigner()
+  const krwt = new Contract(krwtAddress, ERC20_APPROVE_ABI, signer)
+  const tx = await krwt.approve(spenderAddress, amount)
+  await tx.wait()
+}
+
 export const buyPropertyToken = async (
   contractAddress: string,
-  amount: number  // 구매할 STO 수량
+  amount: number
 ): Promise<string> => {
-  // 1. provider 가져오기
   const provider = await getProvider()
-
-  // 2. signer 가져오기 (트랜잭션 서명 필요)
   const signer = await provider.getSigner()
-
-  // 3. 컨트랙트 인스턴스 생성 (signer 연결)
-  const contract = new Contract(contractAddress,
-PROPERTY_TOKEN_ABI, signer)
-
-  // 4. buy 함수 호출
+  const contract = new Contract(contractAddress, PROPERTY_TOKEN_ABI, signer)
   const tx = await contract.buy(amount)
-
-  // 5. 트랜잭션 완료 대기
   const receipt = await tx.wait()
-
-  // 6. 트랜잭션 해시 반환
   return receipt.hash
 }

@@ -17,6 +17,7 @@ interface PropertyDetailProps {
   fundingPercentage: number
   investors: number
   symbol: string
+  contractAddress: string
 }
 
 export default function PropertyDetail({
@@ -32,37 +33,26 @@ export default function PropertyDetail({
   fundingPercentage,
   investors,
   symbol,
+  contractAddress,
 }: PropertyDetailProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
-  const [quantity, setQuantity] = useState(10)
-  const [transactionId] = useState('0x7f3a...9c2b1e4')
+  const [quantity, setQuantity] = useState(0)
+  const [transactionId] = useState('')
+
+  const pricePerToken = parseFloat(stoPrice.replace(/[^0-9.]/g, ''))
+  const totalAmount = quantity * pricePerToken
 
   const handleNext = (purchaseQuantity: number) => {
     setQuantity(purchaseQuantity)
     setStep(2)
   }
 
-  const handleBack = () => {
-    setStep(1)
-  }
+  const handleBack = () => setStep(1)
+  const handleConfirm = () => setStep(3)
 
-  const handleConfirm = () => {
-    setStep(3)
-  }
-
-  const handleViewPortfolio = () => {
-    navigate('/portfolio')
-  }
-
-  const handleExploreMore = () => {
-    navigate('/marketplace')
-  }
-
-  const pricePerToken = parseFloat(stoPrice.replace('$', '')) * 1300
-  const subtotal = quantity * pricePerToken
-  const gasFee = 1500
-  const totalAmount = subtotal + gasFee
+  const handleViewPortfolio = () => navigate('/portfolio')
+  const handleExploreMore = () => navigate('/marketplace')
   return (
     <>
       {/* Hero Section with Property Image */}
@@ -131,7 +121,13 @@ export default function PropertyDetail({
 
           {/* STO Purchase */}
           {step === 1 && (
-            <STOPurchase stoPrice={stoPrice} propertyName={name} propertyLocation={location} symbol={symbol} onNext={handleNext} />
+            <STOPurchase
+              stoPrice={stoPrice}
+              propertyName={name}
+              propertyLocation={location}
+              symbol={symbol}
+              onNext={handleNext}
+            />
           )}
           {step === 2 && (
             <STOConfirm
