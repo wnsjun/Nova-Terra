@@ -179,4 +179,9 @@ public class Property {
         this.totalValuation = valuationPrice;
         this.totalTokens = totalSupply;
     }
+
+    /* 사용자 보유량 변동 시 총 보유 토큰 수 업데이트 */
+    public void updateTotalTokens(Long total) {
+        this.totalTokens = total;
+    }
 }

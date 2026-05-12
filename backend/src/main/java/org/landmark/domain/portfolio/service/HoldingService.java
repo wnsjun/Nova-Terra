@@ -60,5 +60,8 @@ public class HoldingService {
                                     user.getId(), propertyId, amount, krwtCost);
                         }
                 );
+
+        Long total = userHoldingRepository.sumAmountByPropertyId(propertyId);
+        property.updateTotalTokens(total);
     }
 }

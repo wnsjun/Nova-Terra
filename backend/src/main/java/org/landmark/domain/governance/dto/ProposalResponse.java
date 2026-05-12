@@ -11,28 +11,31 @@ public record ProposalResponse(
 
     String propertyId,
     String propertyName,
+    Long totalTokens,
 
-    String proposerName,
+    String proposerAddress,
     Long startAt,
-    Long endTime,
+    Long endAt,
     List<String> choices,
-    ProposalStatus status
+    ProposalStatus status,
+    Long voteFor,
+    Long voteAgainst
 ) {
   public static ProposalResponse from(Proposal proposal) {
-    String proposerName = (proposal.getProposer() != null) ?
-        proposal.getProposer().getName() : "System";
-
     return new ProposalResponse(
         String.valueOf(proposal.getId()),
         proposal.getTitle(),
         proposal.getDescription(),
         proposal.getProperty().getId(),
         proposal.getProperty().getName(),
-        proposerName,
+        proposal.getProperty().getTotalTokens(),
+        proposal.getProposerAddress(),
         proposal.getStartAt(),
         proposal.getEndAt(),
         proposal.getChoices(),
-        proposal.getStatus()
+        proposal.getStatus(),
+        proposal.getVoteFor(),
+        proposal.getVoteAgainst()
     );
   }
 }

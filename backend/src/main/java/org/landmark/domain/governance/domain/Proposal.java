@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.landmark.domain.properties.domain.Property;
-import org.landmark.domain.user.domain.User;
 
 import java.util.List;
 
@@ -26,12 +25,11 @@ public class Proposal {
     private BigInteger onChainProposalId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "property_id", nullable = false) // Property의 PK (sto_token_address)를 참조
+    @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "proposer_id")
-    private User proposer;
+    @Column(name = "proposer_address", length = 42)
+    private String proposerAddress;
 
     @Column(nullable = false)
     private String title;
@@ -56,29 +54,38 @@ public class Proposal {
     @Column(nullable = false)
     private ProposalStatus status;
 
+    @Column(name = "vote_for", nullable = false)
+    private Long voteFor = 0L;
+
+    @Column(name = "vote_against", nullable = false)
+    private Long voteAgainst = 0L;
+
     @Builder
-    public Proposal(BigInteger onChainProposalId, Property property, User proposer, String title,
-                    String description, Long startAt, Long endAt, List<String> choices) {
+    public Proposal(BigInteger onChainProposalId, Property property, String proposerAddress,
+                    String title, String description, Long startAt, Long endAt, List<String> choices) {
 
         this.onChainProposalId = onChainProposalId;
         this.property = property;
-        this.proposer = proposer;
+        this.proposerAddress = proposerAddress;
         this.title = title;
         this.description = description;
         this.startAt = startAt;
         this.endAt = endAt;
         this.choices = choices;
-
+        this.voteFor = 0L;
+        this.voteAgainst = 0L;
         this.createdAt = System.currentTimeMillis() / 1000L;
+        this.status = ProposalStatus.ACTIVE;
+    }
 
-        if (startAt > this.createdAt) {
-            this.status = ProposalStatus.PENDING;
+    public void addVote(boolean support, long votes) {
+        if (support) {
+            this.voteFor += votes;
         } else {
-            this.status = ProposalStatus.ACTIVE;
+            this.voteAgainst += votes;
         }
     }
 
-    // --- 비즈니스 메소드 ---
     public void activate() {
         if (this.status == ProposalStatus.PENDING) {
             this.status = ProposalStatus.ACTIVE;
