@@ -4,7 +4,7 @@ import PortfolioAssetCard from '../components/portfolio/PortfolioAssetCard'
 import PortfolioDetailPanel from '../components/portfolio/PortfolioDetailPanel'
 import ClaimHistoryPanel from '../components/portfolio/ClaimHistoryPanel'
 import { getPortfolio, type PropertyResponse } from '../apis/properties'
-import { getPropertyInfo } from '../apis/blockchain/contracts/tokenFactory'
+import { getPropertyInfoByTokenAddress } from '../apis/blockchain/contracts/tokenFactory'
 import { getTotalClaimable } from '../apis/blockchain/contracts/dividendDistributor'
 
 interface Asset {
@@ -39,15 +39,14 @@ export default function Portfolio() {
             let unclaimedRewards = 0
 
             try {
-              // TokenFactory에서 dividendAddress 가져오기
-              const propertyInfo = await getPropertyInfo('3') // TODO: 실제 propertyId 사용해야 함
-
-              // DividendDistributor에서 미수령 배당금 조회
-              const totalClaimable = await getTotalClaimable(propertyInfo.dividendAddress)
-              unclaimedRewards = Number(totalClaimable)
+              const propertyInfo = await getPropertyInfoByTokenAddress(holding.property.id)
+              if (propertyInfo && propertyInfo.dividendAddress !== '0x0000000000000000000000000000000000000000') {
+                const totalClaimable = await getTotalClaimable(propertyInfo.dividendAddress)
+                unclaimedRewards = Number(BigInt(totalClaimable) / BigInt(10 ** 18))
+              }
             } catch (error) {
               console.error(`${holding.property.name} 미수령 수익 조회 실패:`, error)
-              unclaimedRewards = 0 // 실패하면 0으로 설정
+              unclaimedRewards = 0
             }
 
             return {
@@ -102,9 +101,8 @@ export default function Portfolio() {
     setTimeout(() => setClaimAsset(null), 300)
   }
 
-  const handleClaimMonth = (month: string, amount: number) => {
-    alert(`${month} 수익 KRWT${amount.toLocaleString()}를 클레임합니다!`)
-    // TODO: 실제 클레임 로직 구현
+  const handleClaimMonth = (_month: string, _amount: number) => {
+    // ClaimHistoryPanel 내부에서 처리
   }
 
   const handleDetailPanelClaim = () => {

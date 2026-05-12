@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react'
-import { getPropertyInfo } from '../../apis/blockchain/contracts/tokenFactory'
+import { getPropertyInfoByTokenAddress } from '../../apis/blockchain/contracts/tokenFactory'
 import {
   getDividendIds,
   getDividendInfo,
+  getClaimableDividend,
   isClaimedDividend,
   claimDividend
 } from '../../apis/blockchain/contracts/dividendDistributor'
 
-
 interface ClaimRecord {
   dividendId: number
   month: string
-  amount: number
-  status: 'claimed' | 'unclaimed'
+  totalAmount: number       // 전체 배당 금액 (KRWT)
+  myClaimable: number       // 내가 받을 수 있는 금액 (KRWT)
+  status: 'unclaimed' | 'claimed' | 'expired'
   claimedDate?: string
   txHash?: string
 }
@@ -21,10 +22,9 @@ interface ClaimHistoryPanelProps {
   isOpen: boolean
   onClose: () => void
   asset: {
-    id: string //propertyId
+    id: string
     name: string
     image?: string
-    //unclaimedRewards: number
   } | null
   onClaim: (month: string, amount: number) => void
 }
@@ -32,40 +32,65 @@ interface ClaimHistoryPanelProps {
 export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: ClaimHistoryPanelProps) {
   const [claimRecords, setClaimRecords] = useState<ClaimRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [claimingId, setClaimingId] = useState<number | null>(null)
+  const [claimError, setClaimError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadClaimHistory = async () => {
-      if (!asset || !isOpen) return
+    if (!asset || !isOpen) return
 
+    const loadClaimHistory = async () => {
       try {
         setIsLoading(true)
+        setClaimRecords([])
 
-        // 1. TokenFactory에서 dividendAddress 가져오기
-        const propertyInfo = await getPropertyInfo('3') //asset.id인데,,  테스트용 하드코딩
+        // 1. TokenFactory에서 dividendAddress 가져오기 (tokenAddress 역방향 조회)
+        const propertyInfo = await getPropertyInfoByTokenAddress(asset.id)
+        if (!propertyInfo || propertyInfo.dividendAddress === '0x0000000000000000000000000000000000000000') {
+          console.warn('DividendDistributor 주소를 찾을 수 없습니다:', asset.id)
+          return
+        }
         const dividendAddress = propertyInfo.dividendAddress
 
         // 2. 모든 배당 ID 가져오기
         const dividendIds = await getDividendIds(dividendAddress)
 
-        // 3. 각 배당 정보 조회
-        const records: ClaimRecord[] = []
-        for (const id of dividendIds) {
-          const info = await getDividendInfo(dividendAddress, Number(id))
-          const isClaimed = await isClaimedDividend(dividendAddress, Number(id))
+        // 3. 각 배당 정보 + 내 수령 가능 금액 병렬 조회
+        const records: ClaimRecord[] = await Promise.all(
+          dividendIds.map(async (id) => {
+            const dividendId = Number(id)
+            const [info, myClaimableRaw, isClaimed] = await Promise.all([
+              getDividendInfo(dividendAddress, dividendId),
+              getClaimableDividend(dividendAddress, dividendId),
+              isClaimedDividend(dividendAddress, dividendId),
+            ])
 
-          // timestamp를 날짜 문자열로 변환
-          const date = new Date(Number(info.timestamp) * 1000)
-          const month = `${date.getFullYear()}년 ${date.getMonth() + 1}월`
+            const date = new Date(Number(info.timestamp) * 1000)
+            const month = `${date.getFullYear()}년 ${date.getMonth() + 1}월`
+            const totalAmount = Number(BigInt(info.totalAmount) / BigInt(10 ** 18))
+            const myClaimable = Number(BigInt(myClaimableRaw) / BigInt(10 ** 18))
 
-          records.push({
-            dividendId: Number(id),
-            month: month,
-            amount: Number(info.totalAmount),
-            status: isClaimed ? 'claimed' : 'unclaimed',
-            claimedDate: isClaimed ? date.toLocaleDateString('ko-KR') : undefined
+            let status: ClaimRecord['status']
+            if (isClaimed) {
+              status = 'claimed'
+            } else if (!info.active) {
+              status = 'expired'
+            } else {
+              status = 'unclaimed'
+            }
+
+            return {
+              dividendId,
+              month,
+              totalAmount,
+              myClaimable,
+              status,
+              claimedDate: isClaimed ? date.toLocaleDateString('ko-KR') : undefined,
+            }
           })
-        }
+        )
 
+        // 최신순 정렬
+        records.sort((a, b) => b.dividendId - a.dividendId)
         setClaimRecords(records)
       } catch (error) {
         console.error('클레임 내역 로드 실패:', error)
@@ -75,48 +100,47 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
     }
 
     loadClaimHistory()
-  }, [asset, isOpen])
+  }, [asset?.id, isOpen])
 
-  const totalClaimed = claimRecords
-    .filter(record => record.status === 'claimed')
-    .reduce((sum, record) => sum + record.amount, 0)
+  const totalMyClaimed = claimRecords
+    .filter(r => r.status === 'claimed')
+    .reduce((sum, r) => sum + r.myClaimable, 0)
 
-  const totalUnclaimed = claimRecords
-    .filter(record => record.status === 'unclaimed')
-    .reduce((sum, record) => sum + record.amount, 0)
+  const totalMyUnclaimed = claimRecords
+    .filter(r => r.status === 'unclaimed')
+    .reduce((sum, r) => sum + r.myClaimable, 0)
 
   const handleClaimClick = async (dividendId: number, month: string, amount: number) => {
-      try {
-        setIsLoading(true)
-
-        // 1. dividendAddress 가져오기
-        const propertyInfo = await getPropertyInfo('3') //asset.id인데,,  테스트용 하드코딩
-
-        // 2. 배당금 청구
-        const txHash = await claimDividend(propertyInfo.dividendAddress, dividendId)
-
-        alert(`클레임 성공!\n트랜잭션: ${txHash}`)
-
-        // 3. 데이터 새로고침 - useEffect 다시 실행시키기 위해
-        // 여기서는 수동으로 해당 record 업데이트
-        setClaimRecords(prev =>
-          prev.map(r =>
-            r.dividendId === dividendId
-              ? { ...r, status: 'claimed' as const, claimedDate: new Date().toLocaleDateString('ko-KR'), txHash }
-              : r
-          )
-        )
-
-        // 4. 부모 콜백 실행
-        onClaim(month, amount)
-      } catch (error) {
-        console.error('클레임 실패:', error)
-        alert('클레임에 실패했습니다: ' + (error as Error).message)
-      } finally {
-        setIsLoading(false)
+    if (!asset) return
+    setClaimingId(dividendId)
+    setClaimError(null)
+    try {
+      const propertyInfo = await getPropertyInfoByTokenAddress(asset.id)
+      if (!propertyInfo || propertyInfo.dividendAddress === '0x0000000000000000000000000000000000000000') {
+        setClaimError('배당 컨트랙트 주소를 찾을 수 없습니다.')
+        return
       }
-    }
+      const txHash = await claimDividend(propertyInfo.dividendAddress, dividendId)
 
+      setClaimRecords(prev =>
+        prev.map(r =>
+          r.dividendId === dividendId
+            ? { ...r, status: 'claimed' as const, claimedDate: new Date().toLocaleDateString('ko-KR'), txHash }
+            : r
+        )
+      )
+      onClaim(month, amount)
+    } catch (err: unknown) {
+      const e = err as { code?: number | string; message?: string; reason?: string }
+      if (e.code === 4001 || e.code === 'ACTION_REJECTED') {
+        setClaimError('서명이 거부되었습니다.')
+      } else {
+        setClaimError('클레임 중 오류가 발생했습니다. 다시 시도해주세요.')
+      }
+    } finally {
+      setClaimingId(null)
+    }
+  }
 
   if (!asset) return null
 
@@ -168,33 +192,41 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-gray-800 border border-gray-600 rounded-xl p-5">
               <p className="text-sm text-gray-400 mb-2">총 수령한 수익</p>
-              <p className="text-2xl font-bold text-white">{totalClaimed.toLocaleString()} KRWT</p>
+              <p className="text-2xl font-bold text-white">KRWT {totalMyClaimed.toLocaleString()}</p>
             </div>
             <div className="bg-linear-to-br from-gray-800 to-[#1ABCF7]/5 border border-[#1ABCF7]/30 rounded-xl p-5">
               <p className="text-sm text-gray-400 mb-2">미수령 수익</p>
               <p className="text-2xl font-bold text-[#1ABCF7] drop-shadow-[0_0_10px_rgba(26,188,247,0.5)]">
-                {totalUnclaimed.toLocaleString()} KRWT
+                KRWT {totalMyUnclaimed.toLocaleString()}
               </p>
             </div>
           </div>
+
+          {/* Error Banner */}
+          {claimError && (
+            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              {claimError}
+            </div>
+          )}
 
           {/* Claim Records */}
           <div>
             <h3 className="text-xl font-bold text-white mb-4">클레임 내역</h3>
             <div className="space-y-3">
               {isLoading && (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">블록체인 데이터 로딩중...</p>
+                <div className="flex items-center justify-center py-8 gap-3 text-gray-400">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#1ABCF7]"></div>
+                  블록체인 데이터 로딩중...
                 </div>
               )}
               {!isLoading && claimRecords.length === 0 && (
                 <div className="text-center py-8">
-                  <p className="text-gray-400">클레임 내역이 없습니다.</p>
+                  <p className="text-gray-400">배당 내역이 없습니다.</p>
                 </div>
               )}
-              {claimRecords.map((record, index) => (
+              {claimRecords.map((record) => (
                 <div
-                  key={index}
+                  key={record.dividendId}
                   className={`bg-gray-800 border rounded-xl p-5 transition-all ${
                     record.status === 'unclaimed'
                       ? 'border-[#1ABCF7]/30 shadow-[0_0_15px_rgba(26,188,247,0.1)]'
@@ -208,32 +240,53 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
                         {record.status === 'unclaimed' && (
                           <span className="flex h-2 w-2 rounded-full bg-[#1ABCF7] shadow-[0_0_5px_#1ABCF7] animate-pulse"></span>
                         )}
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <p className="text-2xl font-bold text-white">{record.amount.toLocaleString()} KRWT</p>
-                        {record.status === 'claimed' && record.claimedDate && (
-                          <span className="text-xs text-gray-400">수령일: {record.claimedDate}</span>
+                        {record.status === 'expired' && (
+                          <span className="rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-400">만료됨</span>
                         )}
                       </div>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-bold text-white">KRWT {record.myClaimable.toLocaleString()}</p>
+                        <span className="text-xs text-gray-500">내 수령분</span>
+                      </div>
+                      {record.status === 'claimed' && record.claimedDate && (
+                        <span className="text-xs text-gray-400 mt-1 block">수령일: {record.claimedDate}</span>
+                      )}
                     </div>
 
                     <div className="ml-4">
                       {record.status === 'unclaimed' ? (
                         <button
-                          onClick={() => handleClaimClick(record.dividendId, record.month, record.amount)}
-                          className="cursor-pointer flex items-center gap-2 rounded-lg bg-[#1ABCF7] px-6 py-3 text-sm font-bold text-black shadow-[0_0_10px_rgba(26,188,247,0.3)] transition-all hover:bg-white hover:shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                          onClick={() => handleClaimClick(record.dividendId, record.month, record.myClaimable)}
+                          disabled={claimingId === record.dividendId}
+                          className="cursor-pointer flex items-center gap-2 rounded-lg bg-[#1ABCF7] px-6 py-3 text-sm font-bold text-black shadow-[0_0_10px_rgba(26,188,247,0.3)] transition-all hover:bg-white hover:shadow-[0_0_15px_rgba(255,255,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
-                          </svg>
-                          클레임 받기
+                          {claimingId === record.dividendId ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
+                              처리중
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
+                              </svg>
+                              클레임 받기
+                            </>
+                          )}
                         </button>
-                      ) : (
+                      ) : record.status === 'claimed' ? (
                         <div className="flex items-center gap-2 text-green-400">
                           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                           <span className="text-sm font-medium">완료</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-medium">만료</span>
                         </div>
                       )}
                     </div>
@@ -254,6 +307,7 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
                 <ul className="space-y-1 text-gray-400">
                   <li>• 클레임은 발생 후 언제든지 가능합니다.</li>
                   <li>• 클레임 시 가스비가 발생할 수 있습니다.</li>
+                  <li>• 만료된 배당은 컨트랙트 오너가 회수한 상태입니다.</li>
                 </ul>
               </div>
             </div>
