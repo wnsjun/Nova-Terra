@@ -6,6 +6,7 @@ import org.landmark.domain.governance.domain.ProposalStatus;
 
 public record ProposalResponse(
     String id,
+    String onChainProposalId,
     String title,
     String description,
 
@@ -25,6 +26,7 @@ public record ProposalResponse(
   public static ProposalResponse from(Proposal proposal) {
     return new ProposalResponse(
         String.valueOf(proposal.getId()),
+        String.valueOf(proposal.getOnChainProposalId()),
         proposal.getTitle(),
         proposal.getDescription(),
         proposal.getProperty().getId(),
