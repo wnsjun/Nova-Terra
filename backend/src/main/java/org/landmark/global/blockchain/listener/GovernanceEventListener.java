@@ -124,7 +124,7 @@ public class GovernanceEventListener {
             String proposalIdHex = eventLog.getTopics().get(1);
             BigInteger onChainProposalId = new BigInteger(proposalIdHex.substring(2), 16);
 
-            String propertyId = eventLog.getAddress().toLowerCase();
+            String daoContractAddress = eventLog.getAddress();
 
             @SuppressWarnings({"rawtypes", "unchecked"})
             List<TypeReference<Type>> outputs = (List) List.of(new TypeReference<Utf8String>() {});
@@ -145,11 +145,11 @@ public class GovernanceEventListener {
             String proposerAddress = fetchFromAddress(eventLog.getTransactionHash());
             long blockTimestamp = fetchBlockTimestamp(eventLog.getBlockNumber());
 
-            log.info("ProposalCreated 처리 - onChainProposalId: {}, propertyId: {}, proposer: {}",
-                    onChainProposalId, propertyId, proposerAddress);
+            log.info("ProposalCreated 처리 - onChainProposalId: {}, daoContract: {}, proposer: {}",
+                    onChainProposalId, daoContractAddress, proposerAddress);
 
             governanceService.recordProposal(onChainProposalId, proposerAddress,
-                    title, description, propertyId, blockTimestamp);
+                    title, description, daoContractAddress, blockTimestamp);
 
         } catch (Exception e) {
             log.error("ProposalCreated 이벤트 처리 실패 - txHash: {}", eventLog.getTransactionHash(), e);

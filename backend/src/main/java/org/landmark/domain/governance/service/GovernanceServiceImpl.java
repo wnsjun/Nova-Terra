@@ -54,9 +54,9 @@ public class GovernanceServiceImpl implements GovernanceService {
       return;
     }
 
-    Property property = propertyRepository.findById(propertyId).orElse(null);
+    Property property = propertyRepository.findByDaoContractAddressIgnoreCase(propertyId).orElse(null);
     if (property == null) {
-      log.warn("ProposalCreated 이벤트 — 등록되지 않은 부동산, 스킵 - propertyId: {}", propertyId);
+      log.warn("ProposalCreated 이벤트 — 등록되지 않은 부동산, 스킵 - daoContractAddress: {}", propertyId);
       return;
     }
 
