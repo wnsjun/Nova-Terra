@@ -11,6 +11,7 @@ public record ProposalResponse(
 
     String propertyId,
     String propertyName,
+    String daoContractAddress,
     Long totalTokens,
 
     String proposerAddress,
@@ -28,6 +29,7 @@ public record ProposalResponse(
         proposal.getDescription(),
         proposal.getProperty().getId(),
         proposal.getProperty().getName(),
+        proposal.getProperty().getDaoContractAddress(),
         proposal.getProperty().getTotalTokens(),
         proposal.getProposerAddress(),
         proposal.getStartAt(),
