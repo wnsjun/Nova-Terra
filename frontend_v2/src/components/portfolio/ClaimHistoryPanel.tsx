@@ -13,6 +13,7 @@ import { getWalletAddress } from '../../apis/blockchain/provider'
 interface ClaimRecord {
   dividendId: number
   month: string
+  createdAt: string
   totalAmount: number       // 전체 배당 금액 (KRWT)
   myClaimable: number       // 내가 받을 수 있는 금액 (KRWT)
   status: 'unclaimed' | 'claimed' | 'expired'
@@ -69,6 +70,7 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
 
             const date = new Date(Number(info.timestamp) * 1000)
             const month = `${date.getFullYear()}년 ${date.getMonth() + 1}월`
+            const createdAt = date.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
             const totalAmount = Number(BigInt(info.totalAmount) / BigInt(10 ** 18))
 
             // 이미 클레임한 배당금은 getClaimableDividend가 0을 반환하므로
@@ -99,10 +101,11 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
             return {
               dividendId,
               month,
+              createdAt,
               totalAmount,
               myClaimable,
               status,
-              claimedDate: isClaimed ? date.toLocaleDateString('ko-KR') : undefined,
+              claimedDate: isClaimed ? date.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : undefined,
             }
           })
         )
@@ -143,7 +146,7 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
       setClaimRecords(prev =>
         prev.map(r =>
           r.dividendId === dividendId
-            ? { ...r, status: 'claimed' as const, claimedDate: new Date().toLocaleDateString('ko-KR'), txHash }
+            ? { ...r, status: 'claimed' as const, claimedDate: new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), txHash }
             : r
         )
       )
@@ -253,7 +256,7 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3 mb-1">
                         <h4 className="text-lg font-bold text-white">{record.month}</h4>
                         {record.status === 'unclaimed' && (
                           <span className="flex h-2 w-2 rounded-full bg-[#1ABCF7] shadow-[0_0_5px_#1ABCF7] animate-pulse"></span>
@@ -262,6 +265,7 @@ export default function ClaimHistoryPanel({ isOpen, onClose, asset, onClaim }: C
                           <span className="rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-400">만료됨</span>
                         )}
                       </div>
+                      <p className="text-xs text-gray-500 mb-2">{record.createdAt}</p>
                       <div className="flex items-baseline gap-2">
                         <p className="text-2xl font-bold text-white">KRWT {record.myClaimable.toLocaleString()}</p>
                         <span className="text-xs text-gray-500">내 수령분</span>
