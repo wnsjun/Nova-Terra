@@ -159,3 +159,45 @@ userAddress)
     throw error
   }
 }
+
+// ============================================
+//       총 공급량 조회
+// ============================================
+export const getTotalSupply = async (contractAddress: string): Promise<string> => {
+  const contract = await getGovernanceTokenContract(contractAddress)
+  const supply = await contract.totalSupply()
+  return supply.toString()
+}
+
+// ============================================
+//       위임 주소 조회
+// ============================================
+export const getDelegateOf = async (
+  contractAddress: string,
+  userAddress?: string
+): Promise<string> => {
+  const contract = await getGovernanceTokenContract(contractAddress)
+  const user = userAddress || (await getWalletAddress())
+  const delegatee = await contract.delegates(user)
+  return delegatee
+}
+
+// ============================================
+//       자기 자신에게 위임 (트랜잭션)
+// ============================================
+export const selfDelegate = async (
+  contractAddress: string
+): Promise<string> => {
+  try {
+    const provider = await getProvider()
+    const signer = await provider.getSigner()
+    const userAddress = await signer.getAddress()
+    const contract = new Contract(contractAddress, GOVERNANCE_TOKEN_ABI, signer)
+    const tx = await contract.delegate(userAddress)
+    const receipt = await tx.wait()
+    return receipt.hash
+  } catch (error) {
+    console.error('자기 위임 실패:', error)
+    throw error
+  }
+}

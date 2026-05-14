@@ -199,3 +199,61 @@ export const getGovernanceFullInfo = async (
     throw error
   }
 }
+
+// ============================================
+//       제안 생성 (트랜잭션)
+// ============================================
+export const createOnChainProposal = async (
+  contractAddress: string,
+  description: string
+): Promise<number> => {
+  try {
+    const provider = await getProvider()
+    const signer = await provider.getSigner()
+    const contract = new Contract(contractAddress, GOVERNANCE_ABI, signer)
+    const tx = await contract.createProposal(description)
+    const receipt = await tx.wait()
+
+    // ProposalCreated 이벤트에서 proposalId 추출
+    const iface = contract.interface
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog(log)
+        if (parsed && parsed.name === 'ProposalCreated') {
+          return Number(parsed.args.proposalId)
+        }
+      } catch { /* skip */ }
+    }
+
+    // 이벤트 파싱 실패 시 현재 proposalCount - 1 반환
+    const count = await contract.proposalCount()
+    return Number(count) - 1
+  } catch (error) {
+    console.error('제안 생성 실패:', error)
+    throw error
+  }
+}
+
+// ============================================
+//       투표 (트랜잭션)
+// ============================================
+// support: 0=반대, 1=찬성, 2=기권(기권은 트랜잭션 없이 로컬 처리)
+export const castVote = async (
+  contractAddress: string,
+  proposalId: number,
+  support: 0 | 1 | 2
+): Promise<string> => {
+  if (support === 2) return 'abstain'  // 기권은 온체인 불필요
+  try {
+    const provider = await getProvider()
+    const signer = await provider.getSigner()
+    const contract = new Contract(contractAddress, GOVERNANCE_ABI, signer)
+    // 배포된 컨트랙트는 vote(uint256, bool) — true=찬성, false=반대
+    const tx = await contract.vote(proposalId, support === 1)
+    const receipt = await tx.wait()
+    return receipt.hash
+  } catch (error) {
+    console.error('투표 실패:', error)
+    throw error
+  }
+}

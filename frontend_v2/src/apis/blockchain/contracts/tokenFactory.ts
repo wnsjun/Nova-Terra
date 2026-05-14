@@ -10,6 +10,11 @@ const DIVIDEND_ADDRESS_FALLBACK: Record<string, string> = {
   '0x6f22dE7b12c17896Bb12ec88CCC9B7554c05b30c': '0x89644E13433f4e6Eb07aE42459929DcF906dAeA1',
 }
 
+// TokenFactory에 미등록된 컨트랙트의 governanceAddress 수동 매핑
+const GOVERNANCE_ADDRESS_FALLBACK: Record<string, string> = {
+  '0x6f22dE7b12c17896Bb12ec88CCC9B7554c05b30c': '0x4FaFE06EB9761D20e68bEc1c0b6fa32388f02c83',
+}
+
 // PropertyInfo 타입 정의
 export interface PropertyInfo {
   tokenAddress: string           // PropertyToken 주소
@@ -52,10 +57,14 @@ export const getPropertyInfoByTokenAddress = async (tokenAddress: string): Promi
     for (let i = 1; i <= count; i++) {
       const result = await contract.getProperty(i)
       if (result[3].toLowerCase() === tokenAddress.toLowerCase()) {
+        const govAddr = result[6]
+        const isZeroGov = govAddr === '0x0000000000000000000000000000000000000000'
         return {
           tokenAddress: result[3],
           dividendAddress: result[5],
-          governanceAddress: result[6],
+          governanceAddress: isZeroGov
+            ? (GOVERNANCE_ADDRESS_FALLBACK[tokenAddress] ?? govAddr)
+            : govAddr,
           propertyId: result[0].toString(),
           totalSupply: result[8].toString(),
           tokenPrice: result[9].toString(),
@@ -65,11 +74,12 @@ export const getPropertyInfoByTokenAddress = async (tokenAddress: string): Promi
     }
     // TokenFactory에 없으면 fallback 매핑에서 찾기
     const fallbackDividend = DIVIDEND_ADDRESS_FALLBACK[tokenAddress]
-    if (fallbackDividend) {
+    const fallbackGovernance = GOVERNANCE_ADDRESS_FALLBACK[tokenAddress]
+    if (fallbackDividend || fallbackGovernance) {
       return {
         tokenAddress,
-        dividendAddress: fallbackDividend,
-        governanceAddress: '0x0000000000000000000000000000000000000000',
+        dividendAddress: fallbackDividend ?? '0x0000000000000000000000000000000000000000',
+        governanceAddress: fallbackGovernance ?? '0x0000000000000000000000000000000000000000',
         propertyId: '0',
         totalSupply: '0',
         tokenPrice: '0',
