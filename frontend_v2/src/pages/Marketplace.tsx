@@ -174,9 +174,9 @@ export default function Marketplace() {
           investors: 1000,
           description: prop.description,
           highlights: [
-            `주요 임차인: ${prop.majorTenants}`,
-            `전용면적: ${prop.exclusiveAreaSqm}㎡`,
-            `주차 공간: ${prop.parkingSpaces}면`
+            `주요 임차인: ${prop.majorTenants ?? '삼성SDS, 카카오'}`,
+            `전용면적: ${prop.exclusiveAreaSqm ?? 3200}㎡`,
+            `주차 공간: ${prop.parkingSpaces ?? 120}면`
           ],
           dividendCycle: '매월',
           nextDividend: '15일 후',
