@@ -59,7 +59,7 @@ public class GovernanceEventListener {
 
     private BigInteger lastProcessedBlock = null;
 
-    @Scheduled(fixedDelay = 30_000)
+    @Scheduled(fixedDelay = 10_000)
     public void poll() {
         if (web3j == null) return;
 
